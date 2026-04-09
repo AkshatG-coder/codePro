@@ -1,0 +1,64 @@
+
+services:
+  # ─── PostgreSQL ───────────────────────────────────────────────
+  db:
+    image: postgres:15-alpine
+    container_name: syncboard_db
+    restart: always
+    environment:
+      POSTGRES_USER: syncboard
+      POSTGRES_PASSWORD: syncboard_secret
+      POSTGRES_DB: syncboard
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U syncboard"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ─── Redis (required by Judge0) ───────────────────────────────
+  redis:
+    image: redis:7-alpine
+    container_name: syncboard_redis
+    restart: always
+    ports:
+      - "6379:6379"
+
+  # ─── Judge0 CE Server ─────────────────────────────────────────
+  judge0-server:
+    image: judge0/judge0:1.13.1
+    container_name: judge0_server
+    restart: always
+    ports:
+      - "2358:2358"
+    volumes:
+      - ./judge0.conf:/judge0.conf:ro
+    privileged: true
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    command: ["./scripts/server"]
+    environment:
+      - JUDGE0_TELEMETRY_ENABLE=false
+
+  # ─── Judge0 CE Workers ────────────────────────────────────────
+  judge0-workers:
+    image: judge0/judge0:1.13.1
+    container_name: judge0_workers
+    restart: always
+    volumes:
+      - ./judge0.conf:/judge0.conf:ro
+    privileged: true
+    depends_on:
+      - judge0-server
+    command: ["./scripts/workers"]
+    environment:
+      - JUDGE0_TELEMETRY_ENABLE=false
+
+volumes:
+  pgdata:
