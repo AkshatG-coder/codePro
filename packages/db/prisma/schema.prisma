@@ -1,0 +1,303 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../../../node_modules/.prisma/client"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─────────────────────────────────────────────
+// Enums
+// ─────────────────────────────────────────────
+
+enum Role {
+  USER
+  ADMIN
+}
+
+enum Difficulty {
+  EASY
+  MEDIUM
+  HARD
+}
+
+enum SubmissionStatus {
+  PENDING
+  AC         // Accepted
+  WA         // Wrong Answer
+  TLE        // Time Limit Exceeded
+  MLE        // Memory Limit Exceeded
+  RE         // Runtime Error
+  CE         // Compilation Error
+  SE         // System Error
+}
+
+// ─────────────────────────────────────────────
+// User
+// ─────────────────────────────────────────────
+
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  name          String?
+  image         String?
+  passwordHash  String?   // null for OAuth users
+  role          Role      @default(USER)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  // Relations
+  submissions        Submission[]
+  contestSubmissions ContestSubmission[]
+  contestPoints      ContestPoints[]
+  accounts           Account[]
+  sessions           Session[]
+  problemSuggestions ProblemSuggestion[]
+}
+
+// ─────────────────────────────────────────────
+// NextAuth adapter tables
+// ─────────────────────────────────────────────
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+// ─────────────────────────────────────────────
+// Problem
+// ─────────────────────────────────────────────
+
+model Problem {
+  id          String     @id @default(cuid())
+  slug        String     @unique
+  title       String
+  description String     @db.Text  // Markdown content
+  difficulty  Difficulty @default(MEDIUM)
+  tags        String[]   @default([])
+  hidden      Boolean    @default(false)
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  // Relations
+  defaultCodes    DefaultCode[]
+  fullBoilerplates FullBoilerplate[]
+  testCases       TestCase[]
+  submissions     Submission[]
+  contestProblems ContestProblem[]
+}
+
+// Partial boilerplate shown to the user in the editor
+model DefaultCode {
+  id         String @id @default(cuid())
+  problemId  String
+  languageId Int    // Judge0 language id (54=C++, 63=JS, 73=Rust)
+  code       String @db.Text
+
+  problem Problem @relation(fields: [problemId], references: [id], onDelete: Cascade)
+
+  @@unique([problemId, languageId])
+}
+
+// Full boilerplate used on the server to wrap user code
+model FullBoilerplate {
+  id         String @id @default(cuid())
+  problemId  String
+  languageId Int
+  code       String @db.Text // Contains {{USER_CODE}} placeholder
+
+  problem Problem @relation(fields: [problemId], references: [id], onDelete: Cascade)
+
+  @@unique([problemId, languageId])
+}
+
+// ─────────────────────────────────────────────
+// Test Cases (problem-level, hidden from users)
+// ─────────────────────────────────────────────
+
+model TestCase {
+  id             String @id @default(cuid())
+  problemId      String
+  input          String @db.Text
+  expectedOutput String @db.Text
+  isHidden       Boolean @default(true)   // visible sample vs hidden
+
+  problem              Problem              @relation(fields: [problemId], references: [id], onDelete: Cascade)
+  submissionTestCases  SubmissionTestCase[]
+}
+
+// ─────────────────────────────────────────────
+// Contest
+// ─────────────────────────────────────────────
+
+model Contest {
+  id          String   @id @default(cuid())
+  title       String
+  description String?  @db.Text
+  startTime   DateTime
+  endTime     DateTime
+  hidden      Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  contestProblems    ContestProblem[]
+  contestSubmissions ContestSubmission[]
+  contestPoints      ContestPoints[]
+}
+
+// Junction: Problems in a Contest
+model ContestProblem {
+  id        String @id @default(cuid())
+  contestId String
+  problemId String
+  points    Int    @default(100)  // max points for this problem
+  order     Int    @default(0)   // display order (A, B, C...)
+
+  contest Contest @relation(fields: [contestId], references: [id], onDelete: Cascade)
+  problem Problem @relation(fields: [problemId], references: [id], onDelete: Cascade)
+
+  @@unique([contestId, problemId])
+}
+
+// ─────────────────────────────────────────────
+// Submission
+// ─────────────────────────────────────────────
+
+model Submission {
+  id         String           @id @default(cuid())
+  userId     String
+  problemId  String
+  code       String           @db.Text  // user's submitted code (partial)
+  languageId Int
+  status     SubmissionStatus @default(PENDING)
+  memory     Float?           // MB, set after evaluation
+  time       Float?           // seconds, set after evaluation
+  createdAt  DateTime         @default(now())
+  updatedAt  DateTime         @updatedAt
+
+  // Relations
+  user               User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  problem            Problem            @relation(fields: [problemId], references: [id], onDelete: Cascade)
+  submissionTestCases SubmissionTestCase[]
+  contestSubmission  ContestSubmission?
+}
+
+// Per test-case result (one row per Judge0 token)
+model SubmissionTestCase {
+  id                 String           @id @default(cuid())
+  submissionId       String
+  testCaseId         String
+  judge0TrackingId   String?          @unique  // Judge0 token
+  status             SubmissionStatus @default(PENDING)
+  memory             Float?
+  time               Float?
+  stderr             String?          @db.Text
+  compileOutput      String?          @db.Text
+  createdAt          DateTime         @default(now())
+  updatedAt          DateTime         @updatedAt
+
+  submission Submission @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+  testCase   TestCase   @relation(fields: [testCaseId], references: [id], onDelete: Cascade)
+}
+
+// ─────────────────────────────────────────────
+// Contest Leaderboard
+// ─────────────────────────────────────────────
+
+// A submission associated with a contest run
+model ContestSubmission {
+  id           String   @id @default(cuid())
+  contestId    String
+  submissionId String   @unique  // one ContestSubmission per Submission
+  userId       String
+  problemId    String
+  score        Int      @default(0)
+  createdAt    DateTime @default(now())
+
+  contest    Contest    @relation(fields: [contestId], references: [id], onDelete: Cascade)
+  submission Submission @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+  user       User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+// Aggregated points per user per contest (for leaderboard)
+model ContestPoints {
+  id          String   @id @default(cuid())
+  contestId   String
+  userId      String
+  totalPoints Int      @default(0)
+  rank        Int?
+  updatedAt   DateTime @updatedAt
+
+  contest Contest @relation(fields: [contestId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([contestId, userId])
+}
+
+// ─────────────────────────────────────────────
+// Community Problem Suggestions
+// ─────────────────────────────────────────────
+
+enum SuggestionStatus {
+  PENDING   // Under review
+  APPROVED  // Accepted, awaiting PR
+  MERGED    // Live on the platform
+  REJECTED  // Not suitable
+}
+
+model ProblemSuggestion {
+  id            String           @id @default(cuid())
+  title         String
+  difficulty    Difficulty
+  description   String           @db.Text  // Problem statement idea
+  tags          String[]         @default([])
+  sampleInput   String?          @db.Text
+  sampleOutput  String?          @db.Text
+  githubUsername String?                   // Contributor's GitHub handle
+  referenceLink  String?                   // Optional: link to similar problem
+  status        SuggestionStatus @default(PENDING)
+  adminNotes    String?          @db.Text  // Feedback/guidance from admin
+  prLink        String?                    // GitHub PR link once submitted
+  userId        String?                    // Null if submitted anonymously
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
+
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+}
