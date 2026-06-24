@@ -39,6 +39,7 @@ services:
     image: judge0/judge0:1.13.1
     container_name: codepro_judge0_server
     restart: always
+    cgroupns_mode: host
     ports:
       - "2358:2358"
     volumes:
@@ -59,6 +60,7 @@ services:
     image: judge0/judge0:1.13.1
     container_name: codepro_judge0_workers
     restart: always
+    cgroupns_mode: host
     volumes:
       - ./judge0.conf:/judge0.conf:ro
       - /sys/fs/cgroup:/sys/fs/cgroup:ro
