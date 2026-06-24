@@ -1,0 +1,121 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: judge0-config
+  namespace: default
+data:
+  judge0.conf: |
+    # Redis
+    REDIS_HOST=redis
+    REDIS_PORT=6379
+
+    # Postgres
+    POSTGRES_HOST=db
+    POSTGRES_PORT=5432
+    POSTGRES_DB=judge0
+    POSTGRES_USER=syncboard
+    POSTGRES_PASSWORD=syncboard_secret
+
+    # Execution limits
+    CPU_TIME_LIMIT=5
+    CPU_EXTRA_TIME=1
+    WALL_TIME_LIMIT=10
+    MEMORY_LIMIT=128000
+    STACK_LIMIT=64000
+    MAX_PROCESSES_AND_OR_THREADS=60
+    ENABLE_PER_PROCESS_AND_THREAD_TIME_LIMIT=false
+    ENABLE_PER_PROCESS_AND_THREAD_MEMORY_LIMIT=false
+    MAX_FILE_SIZE=1024
+
+    # Sandbox
+    USE_DOCS_AS_HOMEPAGE=false
+    ENABLE_BATCHED_SUBMISSIONS=true
+    MAX_SUBMISSION_BATCH_SIZE=20
+
+    # Authentication
+    AUTHN_HEADER=
+    AUTHN_TOKEN=
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: judge0-server
+  namespace: default
+  labels:
+    app: judge0-server
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: judge0-server
+  template:
+    metadata:
+      labels:
+        app: judge0-server
+    spec:
+      containers:
+        - name: judge0-server
+          image: judge0/judge0:1.13.1
+          command: ["./scripts/server"]
+          ports:
+            - containerPort: 2358
+          securityContext:
+            privileged: true
+          env:
+            - name: JUDGE0_TELEMETRY_ENABLE
+              value: "false"
+          volumeMounts:
+            - name: config-volume
+              mountPath: /judge0.conf
+              subPath: judge0.conf
+      volumes:
+        - name: config-volume
+          configMap:
+            name: judge0-config
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: judge0-server
+  namespace: default
+spec:
+  ports:
+    - port: 2358
+      targetPort: 2358
+  selector:
+    app: judge0-server
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: judge0-workers
+  namespace: default
+  labels:
+    app: judge0-workers
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: judge0-workers
+  template:
+    metadata:
+      labels:
+        app: judge0-workers
+    spec:
+      containers:
+        - name: judge0-workers
+          image: judge0/judge0:1.13.1
+          command: ["./scripts/workers"]
+          securityContext:
+            privileged: true
+          env:
+            - name: JUDGE0_TELEMETRY_ENABLE
+              value: "false"
+          volumeMounts:
+            - name: config-volume
+              mountPath: /judge0.conf
+              subPath: judge0.conf
+      volumes:
+        - name: config-volume
+          configMap:
+            name: judge0-config

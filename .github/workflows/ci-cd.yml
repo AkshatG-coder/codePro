@@ -1,0 +1,145 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+env:
+  REGISTRY: ghcr.io
+
+jobs:
+  # ─── Phase 1: Lint & Type-check ─────────────────────────────────────
+  validate:
+    name: Validate (Lint + Build)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: Generate Database Client
+        run: npm run db:generate
+
+      - name: Lint Workspace
+        run: npm run lint
+
+      - name: Build Code (Compile Check)
+        run: npm run build
+
+  # ─── Phase 2: Build & Publish Containers (parallel matrix) ──────────
+  build-and-push:
+    name: Build & Push (${{ matrix.service }})
+    needs: validate
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    strategy:
+      fail-fast: false
+      matrix:
+        service: [api, web, worker]
+    outputs:
+      # Each service exposes its image digest for the deploy job
+      image-api:    ${{ steps.push.outputs.digest }}
+      image-web:    ${{ steps.push.outputs.digest }}
+      image-worker: ${{ steps.push.outputs.digest }}
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Compute lowercase image name
+        id: meta
+        run: |
+          OWNER=$(echo "${{ github.repository_owner }}" | tr '[:upper:]' '[:lower:]')
+          REPO=$(echo "${{ github.event.repository.name }}" | tr '[:upper:]' '[:lower:]')
+          echo "image=${{ env.REGISTRY }}/${OWNER}/${REPO}-${{ matrix.service }}" >> $GITHUB_OUTPUT
+
+      - name: Build and Push Docker Image
+        id: push
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./apps/${{ matrix.service }}/Dockerfile
+          push: true
+          tags: |
+            ${{ steps.meta.outputs.image }}:latest
+            ${{ steps.meta.outputs.image }}:${{ github.sha }}
+          # GitHub Actions layer cache — drastically speeds up subsequent builds
+          cache-from: type=gha,scope=${{ matrix.service }}
+          cache-to:   type=gha,scope=${{ matrix.service }},mode=max
+
+      - name: Write Job Summary
+        run: |
+          echo "### ✅ ${{ matrix.service }} image published" >> $GITHUB_STEP_SUMMARY
+          echo "| Tag | Value |" >> $GITHUB_STEP_SUMMARY
+          echo "|-----|-------|" >> $GITHUB_STEP_SUMMARY
+          echo "| \`latest\` | \`${{ steps.meta.outputs.image }}:latest\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| SHA  | \`${{ steps.meta.outputs.image }}:${{ github.sha }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| Digest | \`${{ steps.push.outputs.digest }}\` |" >> $GITHUB_STEP_SUMMARY
+
+  # ─── Phase 3: Rolling Deploy to Kubernetes ───────────────────────────
+  # Uncomment and configure this job when you have a kubeconfig secret set up
+  # in your GitHub repository (Settings → Secrets → KUBECONFIG).
+  #
+  # deploy:
+  #   name: Deploy to Kubernetes
+  #   needs: build-and-push
+  #   if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+  #   runs-on: ubuntu-latest
+  #   environment: production
+  #   steps:
+  #     - name: Checkout Code
+  #       uses: actions/checkout@v4
+  #
+  #     - name: Set up kubectl
+  #       uses: azure/setup-kubectl@v3
+  #
+  #     - name: Configure kubeconfig
+  #       run: |
+  #         mkdir -p ~/.kube
+  #         echo "${{ secrets.KUBECONFIG }}" > ~/.kube/config
+  #         chmod 600 ~/.kube/config
+  #
+  #     - name: Apply K8s Manifests
+  #       run: |
+  #         kubectl apply -f k8s/secrets.yaml
+  #         kubectl apply -f k8s/postgres-deployment.yaml
+  #         kubectl apply -f k8s/redis-deployment.yaml
+  #         kubectl apply -f k8s/judge0-deployment.yaml
+  #         kubectl apply -f k8s/api-deployment.yaml
+  #         kubectl apply -f k8s/web-deployment.yaml
+  #         kubectl apply -f k8s/worker-deployment.yaml
+  #         kubectl apply -f k8s/ingress.yaml
+  #
+  #     - name: Rolling Restart (force new image pull)
+  #       run: |
+  #         kubectl rollout restart deployment/api
+  #         kubectl rollout restart deployment/web
+  #         kubectl rollout restart deployment/worker
+  #
+  #     - name: Verify Rollout
+  #       run: |
+  #         kubectl rollout status deployment/api    --timeout=120s
+  #         kubectl rollout status deployment/web    --timeout=120s
+  #         kubectl rollout status deployment/worker --timeout=120s

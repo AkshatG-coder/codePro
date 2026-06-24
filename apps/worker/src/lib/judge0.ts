@@ -2,6 +2,15 @@ import axios from "axios";
 
 const JUDGE0_URL = process.env.JUDGE0_API_URL ?? "http://localhost:2358";
 
+// When RAPIDAPI_KEY is set, we route through the public Judge0 cloud API.
+// When it is empty, we talk directly to a self-hosted Judge0 instance.
+const rapidApiHeaders = process.env.RAPIDAPI_KEY
+  ? {
+      "X-RapidAPI-Key": process.env.RAPIDAPI_KEY,
+      "X-RapidAPI-Host": "judge0-ce.p.rapidapi.com",
+    }
+  : {};
+
 export interface Judge0Result {
   token: string;
   stdout: string | null;
@@ -26,7 +35,9 @@ export function mapStatus(statusId: number): string {
 export async function pollTokens(tokens: string[]): Promise<Judge0Result[]> {
   if (!tokens.length) return [];
   const res = await axios.get(
-    `${JUDGE0_URL}/submissions/batch?tokens=${tokens.join(",")}&base64_encoded=false&fields=token,stdout,stderr,compile_output,status,time,memory`
+    `${JUDGE0_URL}/submissions/batch?tokens=${tokens.join(",")}&base64_encoded=false&fields=token,stdout,stderr,compile_output,status,time,memory`,
+    { headers: { "Content-Type": "application/json", ...rapidApiHeaders } }
   );
   return res.data.submissions;
 }
+

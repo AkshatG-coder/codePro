@@ -1,0 +1,158 @@
+version: '3.8'
+
+services:
+  # ─── PostgreSQL Database ───────────────────────────────────────
+  db:
+    image: postgres:17-alpine
+    container_name: codepro_db
+    restart: always
+    environment:
+      POSTGRES_USER: syncboard
+      POSTGRES_PASSWORD: syncboard_secret
+      POSTGRES_DB: syncboard
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./scripts/init-db.sql:/docker-entrypoint-initdb.d/init-db.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U syncboard"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # ─── Redis Cache (Required by Judge0) ──────────────────────────
+  redis:
+    image: redis:7-alpine
+    container_name: codepro_redis
+    restart: always
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # ─── Judge0 CE Server ─────────────────────────────────────────
+  judge0-server:
+    image: judge0/judge0:1.13.1
+    container_name: codepro_judge0_server
+    restart: always
+    ports:
+      - "2358:2358"
+    volumes:
+      - ./judge0.conf:/judge0.conf:ro
+    privileged: true
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    command: ["./scripts/server"]
+    environment:
+      - JUDGE0_TELEMETRY_ENABLE=false
+
+  # ─── Judge0 CE Workers ────────────────────────────────────────
+  judge0-workers:
+    image: judge0/judge0:1.13.1
+    container_name: codepro_judge0_workers
+    restart: always
+    volumes:
+      - ./judge0.conf:/judge0.conf:ro
+    privileged: true
+    depends_on:
+      judge0-server:
+        condition: service_started
+    command: ["./scripts/workers"]
+    environment:
+      - JUDGE0_TELEMETRY_ENABLE=false
+
+  # ─── Database Migration & Seeding ──────────────────────────────
+  db-migrate:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    container_name: codepro_db_migrate
+    user: root
+    environment:
+      - DATABASE_URL=postgresql://syncboard:syncboard_secret@db:5432/syncboard
+    entrypoint: ""
+    command: >
+      sh -c "npx prisma db push --schema=packages/db/prisma/schema.prisma --accept-data-loss && npx tsx packages/db/src/seed/index.ts"
+    depends_on:
+      db:
+        condition: service_healthy
+
+  # ─── Express API Server ────────────────────────────────────────
+  api:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    container_name: codepro_api
+    restart: always
+    ports:
+      - "4000:4000"
+    environment:
+      - PORT=4000
+      - NODE_ENV=production
+      - DATABASE_URL=postgresql://syncboard:syncboard_secret@db:5432/syncboard
+      - JWT_SECRET=codepro_jwt_secret_replace_in_production_please
+      - JUDGE0_API_URL=http://judge0-server:2358
+      - FRONTEND_URL=http://localhost:3000
+    depends_on:
+      db:
+        condition: service_healthy
+      db-migrate:
+        condition: service_completed_successfully
+      judge0-server:
+        condition: service_started
+
+  # ─── Code Pro Worker ───────────────────────────────────────────
+  worker:
+    build:
+      context: .
+      dockerfile: apps/worker/Dockerfile
+    container_name: codepro_app_worker
+    restart: always
+    environment:
+      - NODE_ENV=production
+      - DATABASE_URL=postgresql://syncboard:syncboard_secret@db:5432/syncboard
+      - JUDGE0_API_URL=http://judge0-server:2358
+    depends_on:
+      db:
+        condition: service_healthy
+      db-migrate:
+        condition: service_completed_successfully
+      judge0-server:
+        condition: service_started
+
+  # ─── Next.js Frontend ─────────────────────────────────────────
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+    container_name: codepro_web
+    restart: always
+    ports:
+      - "3000:3000"
+    environment:
+      - PORT=3000
+      - NODE_ENV=production
+      - DATABASE_URL=postgresql://syncboard:syncboard_secret@db:5432/syncboard
+      - NEXTAUTH_URL=http://localhost:3000
+      - NEXTAUTH_SECRET=ReplaceThisWith32CharRandomStringRequiredByNextAuth
+      - GOOGLE_CLIENT_ID=my-google-client-id
+      - GOOGLE_CLIENT_SECRET=my-google-client-secret
+      - NEXT_PUBLIC_APP_URL=http://localhost:3000
+      - JUDGE0_API_URL=http://judge0-server:2358
+    depends_on:
+      db:
+        condition: service_healthy
+      db-migrate:
+        condition: service_completed_successfully
+      api:
+        condition: service_started
+
+volumes:
+  pgdata:

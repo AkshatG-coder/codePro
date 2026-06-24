@@ -2,7 +2,7 @@
 services:
   # ─── PostgreSQL ───────────────────────────────────────────────
   db:
-    image: postgres:15-alpine
+    image: postgres:17-alpine
     container_name: syncboard_db
     restart: always
     environment:
