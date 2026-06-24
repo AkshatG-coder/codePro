@@ -43,6 +43,7 @@ services:
       - "2358:2358"
     volumes:
       - ./judge0.conf:/judge0.conf:ro
+      - /sys/fs/cgroup:/sys/fs/cgroup:ro
     privileged: true
     depends_on:
       db:
@@ -60,6 +61,7 @@ services:
     restart: always
     volumes:
       - ./judge0.conf:/judge0.conf:ro
+      - /sys/fs/cgroup:/sys/fs/cgroup:ro
     privileged: true
     depends_on:
       judge0-server:
