@@ -20,9 +20,9 @@ async function fetchStandings(contestId: string) {
 }
 
 export async function GET(
-  _req: NextRequest,
+  req: NextRequest,
   { params }: { params: Promise<{ contestId: string }> }
-) {
+): Promise<Response> {
   const { contestId } = await params;
 
   // Verify contest exists and is active
@@ -74,7 +74,7 @@ export async function GET(
       }, 5000); // push every 5 seconds
 
       // Cleanup when client disconnects
-      _req.signal.addEventListener("abort", () => {
+      req.signal.addEventListener("abort", () => {
         clearInterval(intervalId);
         controller.close();
       });

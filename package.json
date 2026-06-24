@@ -16,11 +16,11 @@
     "db:seed": "turbo run db:seed --filter=@repo/db"
   },
   "devDependencies": {
-    "turbo": "^2.9.3",
-    "typescript": "^5.0.0"
+    "turbo": "^2.10.0",
+    "typescript": "^5.9.3"
   },
   "engines": {
     "node": ">=18"
   },
-  "packageManager": "npm@10.0.0"
+  "packageManager": "npm@10.9.8"
 }
