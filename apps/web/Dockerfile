@@ -21,7 +21,7 @@ WORKDIR /app
 COPY --from=installer /app .
 COPY --from=pruner /app/out/full/ .
 # Generate prisma client (needed before building Next.js)
-RUN npx prisma generate --schema=packages/db/prisma/schema.prisma
+RUN npm run db:generate
 RUN npm run build --filter=@repo/web
 
 # Stage 4: Runner
