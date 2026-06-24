@@ -21,7 +21,8 @@ WORKDIR /app
 COPY --from=installer /app .
 COPY --from=pruner /app/out/full/ .
 # Generate prisma client (needed before building ts files)
-RUN npx --yes prisma@6.19.3 generate --schema=packages/db/prisma/schema.prisma
+RUN npm install -g prisma@6.19.3
+RUN prisma generate --schema=packages/db/prisma/schema.prisma
 RUN npm run build --filter=@repo/worker
 
 # Stage 4: Runner
