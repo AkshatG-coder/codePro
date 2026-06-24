@@ -140,8 +140,9 @@ services:
       - PORT=3000
       - NODE_ENV=production
       - DATABASE_URL=postgresql://syncboard:syncboard_secret@db:5432/syncboard
-      - NEXTAUTH_URL=http://localhost:3000
-      - NEXTAUTH_SECRET=ReplaceThisWith32CharRandomStringRequiredByNextAuth
+      - AUTH_URL=http://localhost:3000
+      - AUTH_SECRET=ReplaceThisWith32CharRandomStringRequiredByNextAuth
+      - AUTH_TRUST_HOST=true
       - GOOGLE_CLIENT_ID=my-google-client-id
       - GOOGLE_CLIENT_SECRET=my-google-client-secret
       - NEXT_PUBLIC_APP_URL=http://localhost:3000
