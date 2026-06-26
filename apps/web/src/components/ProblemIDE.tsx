@@ -76,6 +76,19 @@ export default function ProblemIDE({ problem, contestId }: Props) {
 
   const currentLang = LANGUAGES.find(l => l.id === langId)!;
 
+  // Fetch past submissions for this problem
+  const fetchPastSubs = useCallback(async () => {
+    if (!session) return;
+    try {
+      const res = await fetch(`/api/submission/problem/${problem.id}`);
+      const data = await res.json();
+      if (data.success) setPastSubs(data.data);
+    } catch { /* ignore */ }
+  }, [session, problem.id]);
+
+  // Load past submissions on mount
+  useEffect(() => { fetchPastSubs(); }, [fetchPastSubs]);
+
   // ── Polling ───────────────────────────────────────────────────
   const pollStatus = useCallback(async (submissionId: string, attempts = 0) => {
     const MAX_ATTEMPTS = 30; // max ~75 seconds
@@ -111,14 +124,16 @@ export default function ProblemIDE({ problem, contestId }: Props) {
 
       if (isStillPending) {
         setTimeout(() => pollStatus(submissionId, attempts + 1), 2500);
+      } else {
+        // Submission finished — refresh the past submissions list
+        fetchPastSubs();
       }
-      // else: done — either the submission is finalized OR all test cases resolved
     } catch {
       setTimeout(() => pollStatus(submissionId, attempts + 1), 3000);
     }
-  }, []);
+  }, [fetchPastSubs]);
 
-  // ── Submit ────────────────────────────────────────────────────
+  // Handle code submission
   const handleSubmit = async () => {
     if (!session) { setError("Please sign in to submit."); return; }
     if (isSubmitting) return;
@@ -292,7 +307,7 @@ export default function ProblemIDE({ problem, contestId }: Props) {
   );
 }
 
-// ── Submission Result Component ────────────────────────────────────
+// Submission result display component
 function SubmissionResult({ sub }: { status?: string; sub: SubmissionStatus }) {
   const allDone = sub.submissionTestCases.length > 0 && sub.submissionTestCases.every(tc => tc.status !== "PENDING");
   const statusMeta = STATUS_META[sub.status] ?? STATUS_META.PENDING;
