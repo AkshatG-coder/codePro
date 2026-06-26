@@ -3,15 +3,23 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
 const JUDGE0_URL = process.env.JUDGE0_API_URL ?? "http://localhost:2358";
+const JUDGE0_BATCH_LIMIT = 20; // Judge0 hard limit: max 20 per batch
 
 async function submitBatch(payloads: any[]) {
-  const res = await fetch(`${JUDGE0_URL}/submissions/batch`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ submissions: payloads }),
-  });
-  if (!res.ok) throw new Error("Judge0 batch submission failed");
-  return res.json() as Promise<{ token: string }[]>;
+  // Chunk into groups of ≤20 and submit sequentially
+  const allTokens: { token: string }[] = [];
+  for (let i = 0; i < payloads.length; i += JUDGE0_BATCH_LIMIT) {
+    const chunk = payloads.slice(i, i + JUDGE0_BATCH_LIMIT);
+    const res = await fetch(`${JUDGE0_URL}/submissions/batch`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ submissions: chunk }),
+    });
+    if (!res.ok) throw new Error("Judge0 batch submission failed");
+    const tokens = await res.json() as { token: string }[];
+    allTokens.push(...tokens);
+  }
+  return allTokens;
 }
 
 export async function POST(req: NextRequest) {

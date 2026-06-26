@@ -24,8 +24,11 @@ export async function startWorker() {
   }
 }
 
+const JUDGE0_BATCH_LIMIT = 20; // Judge0 hard limit: max 20 tokens per batch request
+
 async function processPendingSubmissions() {
   // Get all pending test case results that have a Judge0 token
+  // Cap at 60 so we make at most 3 Judge0 batch requests per cycle
   const pendingTestCases = await prisma.submissionTestCase.findMany({
     where: { status: "PENDING", judge0TrackingId: { not: null } },
     select: {
@@ -34,13 +37,20 @@ async function processPendingSubmissions() {
       judge0TrackingId: true,
       testCaseId: true,
     },
-    take: 100, // process up to 100 at a time
+    take: 60,
   });
 
   if (!pendingTestCases.length) return;
 
   const tokens = pendingTestCases.map((tc) => tc.judge0TrackingId!);
-  const results = await pollTokens(tokens);
+
+  // Judge0 only allows 20 tokens per batch — chunk and poll in parallel
+  const chunks: string[][] = [];
+  for (let i = 0; i < tokens.length; i += JUDGE0_BATCH_LIMIT) {
+    chunks.push(tokens.slice(i, i + JUDGE0_BATCH_LIMIT));
+  }
+  const chunkResults = await Promise.all(chunks.map((chunk) => pollTokens(chunk)));
+  const results = chunkResults.flat();
 
   // Map token → result
   const resultMap = new Map(results.map((r) => [r.token, r]));
