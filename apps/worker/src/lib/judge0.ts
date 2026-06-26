@@ -28,7 +28,9 @@ export function mapStatus(statusId: number): string {
     case 5:  return "TLE";
     case 6:  return "CE";
     case 7: case 8: case 9: case 10: case 11: case 12: return "RE";
-    default: return "PENDING";
+    case 13: return "SE"; // Internal Error
+    case 14: return "SE"; // Exec Format Error
+    default: return "SE"; // Unknown/expired token — treat as system error, not PENDING
   }
 }
 
@@ -38,6 +40,7 @@ export async function pollTokens(tokens: string[]): Promise<Judge0Result[]> {
     `${JUDGE0_URL}/submissions/batch?tokens=${tokens.join(",")}&base64_encoded=false&fields=token,stdout,stderr,compile_output,status,time,memory`,
     { headers: { "Content-Type": "application/json", ...rapidApiHeaders } }
   );
-  return res.data.submissions;
+  // Filter out null entries — Judge0 returns null for expired/missing tokens
+  return (res.data.submissions as (Judge0Result | null)[]).filter((s): s is Judge0Result => s !== null);
 }
 
