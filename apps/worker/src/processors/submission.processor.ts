@@ -90,7 +90,7 @@ async function processPendingSubmissions() {
 async function finalizeSubmissionIfComplete(submissionId: string) {
   const allTestCases = await prisma.submissionTestCase.findMany({
     where: { submissionId },
-    select: { status: true },
+    select: { status: true, time: true, memory: true },
   });
 
   // If any are still pending, skip
@@ -106,13 +106,11 @@ async function finalizeSubmissionIfComplete(submissionId: string) {
     allTestCases.find((tc) => tc.status === "RE")  ? "RE"  : "WA"
   );
 
-  // Compute avg time and memory
-  const resolved = allTestCases as { status: string; time?: number | null; memory?: number | null }[];
-  const times = (resolved as any[]).filter((t) => t.time != null).map((t) => t.time as number);
-  const mems  = (resolved as any[]).filter((t) => t.memory != null).map((t) => t.memory as number);
+  const times = allTestCases.filter((t) => t.time != null).map((t) => t.time as number);
+  const mems  = allTestCases.filter((t) => t.memory != null).map((t) => t.memory as number);
 
-  const avgTime  = times.length ? times.reduce((a, b) => a + b, 0) / times.length : null;
-  const maxMem   = mems.length  ? Math.max(...mems) : null;
+  const avgTime = times.length ? times.reduce((a, b) => a + b, 0) / times.length : null;
+  const maxMem  = mems.length  ? Math.max(...mems) : null;
 
   await prisma.submission.update({
     where: { id: submissionId },
