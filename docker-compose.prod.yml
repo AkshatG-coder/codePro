@@ -93,15 +93,13 @@ services:
       dockerfile: apps/api/Dockerfile
     container_name: codepro_api
     restart: always
-    ports:
-      - "4000:4000"
     environment:
       - PORT=4000
       - NODE_ENV=production
       - DATABASE_URL=postgresql://syncboard:syncboard_secret@db:5432/syncboard
       - JWT_SECRET=codepro_jwt_secret_replace_in_production_please
       - JUDGE0_API_URL=http://judge0-server:2358
-      - FRONTEND_URL=http://localhost:3000
+      - FRONTEND_URL=https://codepro.akshatg.codes
     depends_on:
       db:
         condition: service_healthy
@@ -109,6 +107,9 @@ services:
         condition: service_completed_successfully
       judge0-server:
         condition: service_started
+    networks:
+      - default
+      - webnet
 
   # ─── Code Pro Worker ───────────────────────────────────────────
   worker:
@@ -136,18 +137,16 @@ services:
       dockerfile: apps/web/Dockerfile
     container_name: codepro_web
     restart: always
-    ports:
-      - "3000:3000"
     environment:
       - PORT=3000
       - NODE_ENV=production
       - DATABASE_URL=postgresql://syncboard:syncboard_secret@db:5432/syncboard
-      - AUTH_URL=http://localhost:3000
+      - AUTH_URL=https://codepro.akshatg.codes
       - AUTH_SECRET=ReplaceThisWith32CharRandomStringRequiredByNextAuth
       - AUTH_TRUST_HOST=true
       - GOOGLE_CLIENT_ID=my-google-client-id
       - GOOGLE_CLIENT_SECRET=my-google-client-secret
-      - NEXT_PUBLIC_APP_URL=http://localhost:3000
+      - NEXT_PUBLIC_APP_URL=https://codepro.akshatg.codes
       - JUDGE0_API_URL=http://judge0-server:2358
     depends_on:
       db:
@@ -156,6 +155,13 @@ services:
         condition: service_completed_successfully
       api:
         condition: service_started
+    networks:
+      - default
+      - webnet
 
 volumes:
   pgdata:
+
+networks:
+  webnet:
+    external: true

@@ -1,0 +1,16 @@
+codepro.akshatg.codes {
+    # Route API requests to the Express backend
+    handle_path /api/* {
+        reverse_proxy codepro_api:4000
+    }
+    
+    # Route all other requests to the Next.js frontend
+    handle {
+        reverse_proxy codepro_web:3000
+    }
+}
+
+# Uncomment this section when you are ready to deploy your portfolio
+# akshatg.codes {
+#    reverse_proxy portfolio_web:3000 
+# }
