@@ -1,6 +1,6 @@
 codepro.akshatg.codes {
     # Route API requests to the Express backend
-    handle_path /api/* {
+    handle /api/* {
         reverse_proxy codepro_api:4000
     }
     
