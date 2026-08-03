@@ -100,9 +100,10 @@ async function finalizeSubmissionIfComplete(submissionId: string) {
   // Determine final status: AC only if ALL are AC
   const allAC = allTestCases.every((tc) => tc.status === "AC");
   const finalStatus = allAC ? "AC" : (
+    allTestCases.find((tc) => tc.status === "SE")  ? "SE"  :
+    allTestCases.find((tc) => tc.status === "CE")  ? "CE"  :
     allTestCases.find((tc) => tc.status === "TLE") ? "TLE" :
     allTestCases.find((tc) => tc.status === "MLE") ? "MLE" :
-    allTestCases.find((tc) => tc.status === "CE")  ? "CE"  :
     allTestCases.find((tc) => tc.status === "RE")  ? "RE"  : "WA"
   );
 
