@@ -45,7 +45,6 @@ services:
       - ./judge0.conf:/judge0.conf:ro
       - /sys/fs/cgroup:/sys/fs/cgroup:rw
     privileged: true
-    cgroupns: host
     depends_on:
       db:
         condition: service_healthy
@@ -64,7 +63,6 @@ services:
       - ./judge0.conf:/judge0.conf:ro
       - /sys/fs/cgroup:/sys/fs/cgroup:rw
     privileged: true
-    cgroupns: host
     depends_on:
       judge0-server:
         condition: service_started
