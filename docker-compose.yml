@@ -54,6 +54,8 @@ services:
     volumes:
       - ./judge0.conf:/judge0.conf:ro
     privileged: true
+    tmpfs:
+      - /tmp:exec
     depends_on:
       - judge0-server
     command: ["./scripts/workers"]
