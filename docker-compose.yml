@@ -31,6 +31,7 @@ services:
   judge0-server:
     image: judge0/judge0:1.13.1
     container_name: judge0_server
+    user: root
     restart: always
     ports:
       - "2358:2358"
@@ -50,12 +51,14 @@ services:
   judge0-workers:
     image: judge0/judge0:1.13.1
     container_name: judge0_workers
+    user: root
     restart: always
     volumes:
       - ./judge0.conf:/judge0.conf:ro
     privileged: true
     tmpfs:
       - /tmp:exec
+      - /box:exec,rw,mode=777
     depends_on:
       - judge0-server
     command: ["./scripts/workers"]
