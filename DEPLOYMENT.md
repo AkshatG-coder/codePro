@@ -79,41 +79,13 @@ In production, all services—including the Web, API, and Worker applications—
 
 ---
 
-## ☸️ Option 2: Orchestration via Kubernetes (K8s)
+## 🚀 Option 2: Cloud Deployment (Vercel + Render + Neon)
 
-For high-availability, scalability, and rolling updates, we deploy Code Pro to Kubernetes.
-
-### Manifest Configuration Structure
-The `k8s/` folder contains standard declarative manifests:
-* **`secrets.yaml`**: Contains Base64-encoded credentials (DB connection strings, JWT/OAuth secrets).
-* **`postgres-deployment.yaml`**: Sets up PostgreSQL with a 2Gi `PersistentVolumeClaim` (PVC) for data durability and an init script ConfigMap to automatically bootstrap the `judge0` database.
-* **`redis-deployment.yaml`**: Runs a Redis deployment for Judge0 queueing.
-* **`judge0-deployment.yaml`**: Deploys Judge0 Server (privileged mode for sandboxing) and Workers using a central ConfigMap.
-* **`api-deployment.yaml`**: Express backend API with resource limits, liveness, and readiness probes.
-* **`web-deployment.yaml`**: Next.js frontend with resource limits, liveness, and readiness probes.
-* **`worker-deployment.yaml`**: Evaluator worker listening to Judge0.
-* **`ingress.yaml`**: NGINX Ingress controller configuration routing `/api` to the backend and `/` to the frontend.
-
-### Automated Deployment to Local Cluster
-If you are running a local Kubernetes cluster (such as the built-in Kubernetes in **Docker Desktop**, **Minikube**, or **Kind**), you can automate the entire build, deployment, and database migration process using the provided scripts.
-
-**On Windows (PowerShell):**
-```powershell
-./scripts/k8s-deploy.ps1
-```
-
-**On Linux / macOS (Bash):**
-```bash
-chmod +x ./scripts/k8s-deploy.sh
-./scripts/k8s-deploy.sh
-```
-
-**What the script automates:**
-1. Builds the latest `api`, `web`, and `worker` images locally.
-2. Deploys the persistent volumes, database services, and cache services.
-3. Spins up a temporary Kubernetes job to run `prisma db push` and `prisma db seed` in order to initialize the database tables and sample problems inside Kubernetes.
-4. Applies all core application deployments.
-5. Monitors rollout progress until all services are healthy and ready to receive traffic.
+For production deployment without managing virtual machines:
+1. **Frontend (`apps/web`)**: Deployed on **Vercel**.
+2. **Backend API (`apps/api`) & Worker (`apps/worker`)**: Deployed on **Render**.
+3. **Database**: Managed PostgreSQL on **Neon.tech**.
+4. **Code Execution**: Configured via cloud-hosted **Judge0 API**.
 
 ---
 
