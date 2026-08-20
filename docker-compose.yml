@@ -3,18 +3,18 @@ services:
   # ─── PostgreSQL ───────────────────────────────────────────────
   db:
     image: postgres:17-alpine
-    container_name: syncboard_db
+    container_name: codepro_db
     restart: always
     environment:
-      POSTGRES_USER: syncboard
-      POSTGRES_PASSWORD: syncboard_secret
-      POSTGRES_DB: syncboard
+      POSTGRES_USER: codepro
+      POSTGRES_PASSWORD: codepro_secret
+      POSTGRES_DB: codepro
     ports:
       - "5432:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U syncboard"]
+      test: ["CMD-SHELL", "pg_isready -U codepro"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -22,7 +22,7 @@ services:
   # ─── Redis (required by Judge0) ───────────────────────────────
   redis:
     image: redis:7-alpine
-    container_name: syncboard_redis
+    container_name: codepro_redis
     restart: always
     ports:
       - "6379:6379"

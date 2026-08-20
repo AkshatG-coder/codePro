@@ -34,7 +34,7 @@ docker exec codepro_app_worker sh -c "wget -qO- http://judge0-server:2358/status
 
 echo ""
 echo "7️⃣  Checking judge0 database exists..."
-docker exec codepro_db psql -U syncboard -lqt 2>&1 | grep judge0 || echo "❌ judge0 database does NOT exist!"
+docker exec codepro_db psql -U codepro -lqt 2>&1 | grep judge0 || echo "❌ judge0 database does NOT exist!"
 
 echo ""
 echo "8️⃣  Memory & Disk check..."
@@ -47,7 +47,7 @@ echo "  If Judge0 containers are not running, try:"
 echo "  docker compose -f docker-compose.prod.yml up -d judge0-server judge0-workers"
 echo ""
 echo "  If judge0 DB is missing:"
-echo "  docker exec codepro_db psql -U syncboard -c 'CREATE DATABASE judge0;'"
+echo "  docker exec codepro_db psql -U codepro -c 'CREATE DATABASE judge0;'"
 echo "  Then restart Judge0:"
 echo "  docker compose -f docker-compose.prod.yml restart judge0-server judge0-workers"
 echo "═══════════════════════════════════════════════════"

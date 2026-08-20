@@ -1,6 +1,6 @@
 # Code Pro Deployment Guide
 
-Welcome to the **Code Pro** deployment guide. This document describes the platform's multi-tier architecture, production containerization via Docker Compose, orchestration using Kubernetes, and the automated CI/CD pipeline.
+Welcome to the **Code Pro** deployment guide. This document describes the platform's multi-tier architecture, production containerization via Docker Compose, cloud deployment, and the automated CI/CD pipeline.
 
 ---
 
@@ -18,12 +18,11 @@ Code Pro is built as a microservices-based monorepo consisting of:
 
 ```mermaid
 graph TD
-    Client[User / Browser] -->|HTTP Traffic| Ingress[Ingress Controller / Load Balancer]
+    Client[User / Browser] -->|HTTP Traffic| Web[Next.js Web Frontend - Port 3000]
+    Client -->|API Requests| API[Express API Server - Port 4000]
     
-    Ingress -->|Path: /api/*| API[Express API Server - Port 4000]
-    Ingress -->|Path: /*| Web[Next.js Web Frontend - Port 3000]
-    
-    Web -->|Direct Database Connection| DB[(PostgreSQL DB: syncboard)]
+    Web -->|Direct Database Connection| DB[(PostgreSQL DB: codepro)]
+    API -->|Direct Database Connection| DB
     API -->|Direct Database Connection| DB
     Worker[Code Pro Worker] -->|Poll & Update Status| DB
     
