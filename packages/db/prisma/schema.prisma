@@ -3,6 +3,7 @@
 
 generator client {
   provider      = "prisma-client-js"
+  output        = "../../../node_modules/.prisma/client"
   binaryTargets = ["native", "linux-musl-openssl-3.0.x"]
 }
 
@@ -257,6 +258,7 @@ model ContestSubmission {
 }
 
 // Aggregated points per user per contest (for leaderboard)
+
 model ContestPoints {
   id          String   @id @default(cuid())
   contestId   String

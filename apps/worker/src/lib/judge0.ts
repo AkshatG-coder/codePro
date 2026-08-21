@@ -21,6 +21,7 @@ export interface Judge0Result {
   memory: number | null;
 }
 
+
 export function mapStatus(statusId: number): string {
   switch (statusId) {
     case 3:  return "AC";
@@ -37,10 +38,26 @@ export function mapStatus(statusId: number): string {
 export async function pollTokens(tokens: string[]): Promise<Judge0Result[]> {
   if (!tokens.length) return [];
   const res = await axios.get(
-    `${JUDGE0_URL}/submissions/batch?tokens=${tokens.join(",")}&base64_encoded=false&fields=token,stdout,stderr,compile_output,status,time,memory`,
+    `${JUDGE0_URL}/submissions/batch?tokens=${tokens.join(",")}&base64_encoded=true&fields=token,stdout,stderr,compile_output,status,time,memory`,
     { headers: { "Content-Type": "application/json", ...rapidApiHeaders } }
   );
-  // Filter out null entries — Judge0 returns null for expired/missing tokens
-  return (res.data.submissions as (Judge0Result | null)[]).filter((s): s is Judge0Result => s !== null);
-}
 
+  const decodeBase64 = (str: string | null) => {
+    if (!str) return null;
+    try {
+      return Buffer.from(str, 'base64').toString('utf-8');
+    } catch {
+      return str;
+    }
+  };
+
+  // Filter out null entries and decode base64 — Judge0 returns null for expired/missing tokens
+  return (res.data.submissions as (Judge0Result | null)[])
+    .filter((s): s is Judge0Result => s !== null)
+    .map((s) => ({
+      ...s,
+      stdout: decodeBase64(s.stdout),
+      stderr: decodeBase64(s.stderr),
+      compile_output: decodeBase64(s.compile_output),
+    }));
+}
