@@ -89,48 +89,37 @@ export default function ProblemIDE({ problem, contestId }: Props) {
   // Load past submissions on mount
   useEffect(() => { fetchPastSubs(); }, [fetchPastSubs]);
 
-  // ── Polling ───────────────────────────────────────────────────
-  const pollStatus = useCallback(async (submissionId: string, attempts = 0) => {
-    const MAX_ATTEMPTS = 30; // max ~75 seconds
-    if (attempts >= MAX_ATTEMPTS) {
-      // Give up — mark as timed out in UI
-      setCurrentSub(prev => prev ? { ...prev, status: "SE" } : prev);
-      setError("Judging timed out. Please try again.");
-      return;
-    }
-    try {
-      const res = await fetch(`/api/submission/${submissionId}/status`);
-      if (!res.ok) {
-        // Retry on HTTP errors
-        setTimeout(() => pollStatus(submissionId, attempts + 1), 3000);
-        return;
+  // Subscribe to real-time submission updates via SSE
+  const subscribeToSubmission = useCallback((submissionId: string) => {
+    const eventSource = new EventSource(`/api/submission/${submissionId}/stream`);
+
+    eventSource.onmessage = (event) => {
+      try {
+        const data = JSON.parse(event.data);
+        if (!data.success || !data.data) return;
+        
+        const sub = data.data;
+        setCurrentSub(sub);
+
+        const allTestCasesDone =
+          sub.submissionTestCases.length > 0 &&
+          sub.submissionTestCases.every((tc: { status: string }) => tc.status !== "PENDING");
+
+        const isStillPending = sub.status === "PENDING" && !allTestCasesDone;
+
+        if (!isStillPending) {
+          eventSource.close();
+          fetchPastSubs();
+        }
+      } catch (err) {
+        console.error("Failed to parse SSE data", err);
       }
-      const data = await res.json();
-      if (!data.success) {
-        setTimeout(() => pollStatus(submissionId, attempts + 1), 3000);
-        return;
-      }
+    };
 
-      setCurrentSub(data.data);
-
-      const sub = data.data;
-      // Check if all test cases are resolved (not just the top-level status)
-      // This handles the case where the worker hasn't finalized yet
-      const allTestCasesDone =
-        sub.submissionTestCases.length > 0 &&
-        sub.submissionTestCases.every((tc: { status: string }) => tc.status !== "PENDING");
-
-      const isStillPending = sub.status === "PENDING" && !allTestCasesDone;
-
-      if (isStillPending) {
-        setTimeout(() => pollStatus(submissionId, attempts + 1), 2500);
-      } else {
-        // Submission finished — refresh the past submissions list
-        fetchPastSubs();
-      }
-    } catch {
-      setTimeout(() => pollStatus(submissionId, attempts + 1), 3000);
-    }
+    eventSource.onerror = () => {
+      eventSource.close();
+      setError("Connection to server lost. Please refresh.");
+    };
   }, [fetchPastSubs]);
 
   // Handle code submission
@@ -163,7 +152,7 @@ export default function ProblemIDE({ problem, contestId }: Props) {
         createdAt: new Date().toISOString(),
         submissionTestCases: [],
       });
-      pollStatus(submissionId);
+      subscribeToSubmission(submissionId);
     } catch {
       setError("Network error. Please try again.");
     } finally {

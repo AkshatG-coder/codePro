@@ -7,31 +7,28 @@ Welcome to the **Code Pro** deployment guide. This document describes the platfo
 ## 🏗️ System Architecture
 
 Code Pro is built as a microservices-based monorepo consisting of:
-1. **Next.js Web Frontend**: Server-side rendered UI.
-2. **Express API Server**: Handles core platform logic, authentication, and submits jobs to Judge0.
-3. **Background Worker**: A lightweight Node.js/TypeScript daemon that polls Judge0 and updates submission statuses.
-4. **Judge0 CE**: An open-source, sandbox-secured code execution engine.
-5. **PostgreSQL**: Stores persistent relational data (users, problems, submissions, and contest rankings).
-6. **Redis**: In-memory message broker used by Judge0 for job queueing.
+1. **Next.js Web Frontend**: Server-side rendered UI and API Routes for Server-Sent Events (SSE) and Webhooks.
+2. **Express API Server**: Handles core platform logic and authentication.
+3. **Judge0 CE**: An open-source, sandbox-secured code execution engine.
+4. **PostgreSQL**: Stores persistent relational data (users, problems, submissions, and contest rankings).
+5. **Redis**: In-memory message broker used by Judge0 for job queueing.
 
-### Traffic & Data Flow Diagram
+### Traffic & Data Flow Diagram (Webhook + SSE Architecture)
 
 ```mermaid
 graph TD
-    Client[User / Browser] -->|HTTP Traffic| Web[Next.js Web Frontend - Port 3000]
-    Client -->|API Requests| API[Express API Server - Port 4000]
+    Client[User / Browser] -->|1. Submit Code| WebAPI[Next.js API - Port 3000]
+    Client -->|2. Subscribe to SSE| WebAPI
     
-    Web -->|Direct Database Connection| DB[(PostgreSQL DB: codepro)]
-    API -->|Direct Database Connection| DB
-    API -->|Direct Database Connection| DB
-    Worker[Code Pro Worker] -->|Poll & Update Status| DB
+    WebAPI -->|3. Submit Batch & Callback URL| JServer[Judge0 CE Server - Port 2358]
+    WebAPI -->|Save PENDING Submission| DB[(PostgreSQL DB: codepro)]
     
-    API -->|Submit Code Batches| JServer[Judge0 CE Server - Port 2358]
-    Worker -->|Poll for Submissions| JServer
-    
-    JServer -->|Job Storage| DB
     JServer -->|Job Queueing| Redis[(Redis Broker)]
     JWorker[Judge0 CE Worker] -->|Execute & Evaluate| Redis
+    
+    JServer -->|4. Push Result Webhook| WebAPI
+    WebAPI -->|5. Update DB Status| DB
+    WebAPI -->|6. Push SSE Event| Client
 ```
 
 ---

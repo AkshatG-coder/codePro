@@ -69,13 +69,21 @@ export async function POST(req: NextRequest) {
       include: { submissionTestCases: true },
     });
 
-    // 5. Submit batch to Judge0 (fire-and-forget ordering — worker polls asynchronously)
-    const judge0Payloads = testCases.map((tc: { input: string; expectedOutput: string }) => ({
-      source_code: fullCode,
-      language_id: languageId,
-      stdin: tc.input,
-      expected_output: tc.expectedOutput,
-    }));
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+
+    // 5. Submit batch to Judge0 (fire-and-forget ordering — webhook receives result asynchronously)
+    const judge0Payloads = testCases.map((tc: { id: string; input: string; expectedOutput: string }) => {
+      // Find the corresponding SubmissionTestCase ID
+      const stc = submission.submissionTestCases.find((s: any) => s.testCaseId === tc.id);
+      
+      return {
+        source_code: fullCode,
+        language_id: languageId,
+        stdin: tc.input,
+        expected_output: tc.expectedOutput,
+        callback_url: `${appUrl}/api/webhook/judge0?submissionTestCaseId=${stc?.id}&submissionId=${submission.id}`,
+      };
+    });
     const tokens = await submitBatch(judge0Payloads);
 
     // 6. Save Judge0 tokens on each SubmissionTestCase

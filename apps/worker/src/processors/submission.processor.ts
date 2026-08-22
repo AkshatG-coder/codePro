@@ -142,6 +142,7 @@ async function updateContestPoints(submissionId: string) {
       },
     },
   });
+  
   if (!contestProblem) return;
 
   // Only award points for the first AC on this problem
