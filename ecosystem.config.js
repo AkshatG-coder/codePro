@@ -29,15 +29,5 @@ module.exports = {
         FRONTEND_URL: "http://codepro.akshatg.codes",
       },
     },
-    {
-      name: "worker",
-      cwd: "/home/azureuser/codePro",
-      script: "apps/worker/dist/index.js",
-      env: {
-        NODE_ENV: "production",
-        DATABASE_URL: "postgresql://codepro:codepro_secret@localhost:5432/codepro",
-        JUDGE0_API_URL: "http://localhost:2358",
-      },
-    },
   ],
 };

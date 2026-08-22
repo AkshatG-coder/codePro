@@ -48,12 +48,11 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        service: [api, web, worker]
+        service: [api, web]
     outputs:
       # Each service exposes its image digest for the deploy job
       image-api:    ${{ steps.push.outputs.digest }}
       image-web:    ${{ steps.push.outputs.digest }}
-      image-worker: ${{ steps.push.outputs.digest }}
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
@@ -129,17 +128,14 @@ jobs:
   #         kubectl apply -f k8s/judge0-deployment.yaml
   #         kubectl apply -f k8s/api-deployment.yaml
   #         kubectl apply -f k8s/web-deployment.yaml
-  #         kubectl apply -f k8s/worker-deployment.yaml
   #         kubectl apply -f k8s/ingress.yaml
   #
   #     - name: Rolling Restart (force new image pull)
   #       run: |
   #         kubectl rollout restart deployment/api
   #         kubectl rollout restart deployment/web
-  #         kubectl rollout restart deployment/worker
   #
   #     - name: Verify Rollout
   #       run: |
   #         kubectl rollout status deployment/api    --timeout=120s
   #         kubectl rollout status deployment/web    --timeout=120s
-  #         kubectl rollout status deployment/worker --timeout=120s

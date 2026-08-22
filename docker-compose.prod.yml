@@ -111,24 +111,6 @@ services:
       - default
       - webnet
 
-  # ─── Code Pro Worker ───────────────────────────────────────────
-  worker:
-    build:
-      context: .
-      dockerfile: apps/worker/Dockerfile
-    container_name: codepro_app_worker
-    restart: always
-    environment:
-      - NODE_ENV=production
-      - DATABASE_URL=postgresql://codepro:codepro_secret@db:5432/codepro
-      - JUDGE0_API_URL=http://judge0-server:2358
-    depends_on:
-      db:
-        condition: service_healthy
-      db-migrate:
-        condition: service_completed_successfully
-      judge0-server:
-        condition: service_started
 
   # ─── Next.js Frontend ─────────────────────────────────────────
   web:

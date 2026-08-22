@@ -79,7 +79,7 @@ In production, all services—including the Web, API, and Worker applications—
 
 For production deployment without managing virtual machines:
 1. **Frontend (`apps/web`)**: Deployed on **Vercel**.
-2. **Backend API (`apps/api`) & Worker (`apps/worker`)**: Deployed on **Render**.
+2. **Backend API (`apps/api`)**: Deployed on **Render**.
 3. **Database**: Managed PostgreSQL on **Neon.tech**.
 4. **Code Execution**: Configured via cloud-hosted **Judge0 API**.
 
