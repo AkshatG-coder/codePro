@@ -72,9 +72,7 @@ services:
 
   # ─── Database Migration & Seeding ──────────────────────────────
   db-migrate:
-    build:
-      context: .
-      dockerfile: apps/api/Dockerfile
+    image: ghcr.io/akshatg-coder/codepro-api:latest
     container_name: codepro_db_migrate
     user: root
     environment:
@@ -88,9 +86,7 @@ services:
 
   # ─── Express API Server ────────────────────────────────────────
   api:
-    build:
-      context: .
-      dockerfile: apps/api/Dockerfile
+    image: ghcr.io/akshatg-coder/codepro-api:latest
     container_name: codepro_api
     restart: always
     environment:
@@ -114,9 +110,7 @@ services:
 
   # ─── Next.js Frontend ─────────────────────────────────────────
   web:
-    build:
-      context: .
-      dockerfile: apps/web/Dockerfile
+    image: ghcr.io/akshatg-coder/codepro-web:latest
     container_name: codepro_web
     restart: always
     environment:
