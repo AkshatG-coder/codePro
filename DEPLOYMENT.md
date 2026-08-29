@@ -56,32 +56,16 @@ In development, the databases and Judge0 run in containers while you run the app
    npm run dev
    ```
 
-### B. Production Mode (Full Stack in Containers)
-In production, all services—including the Web, API, and Worker applications—are built as optimized production containers.
+### B. Production Mode (Azure VM + PM2 + Neon DB)
+Our actual live production environment uses a hybrid approach to maximize performance while minimizing costs:
 
-1. **Verify your environment variables**:
-   Create a root `.env` or verify that your services are pointing to `db` instead of `localhost` in production. Ensure `JUDGE0_CALLBACK_SECRET` is set to a secure string to authenticate webhooks from Judge0.
-2. **Build and start the complete stack**:
-   ```bash
-   docker compose -f docker-compose.prod.yml up --build -d
-   ```
-3. **How it works behind the scenes**:
-   * **`db-migrate`**: Spins up temporarily to run `npx prisma db push` and `npx tsx seed` to prepare the database.
-   * **Health checks**: Services like `api` and `web` wait to launch until `db-migrate` has successfully exited.
-4. **Access the application**:
-   * Web App: [http://localhost:3000](http://localhost:3000)
-   * API Server: [http://localhost:4000](http://localhost:4000)
-   * Judge0 API: [http://localhost:2358](http://localhost:2358)
-
----
-
-## 🚀 Option 2: Cloud Deployment (Vercel + Render + Neon)
-
-For production deployment without managing virtual machines:
-1. **Frontend (`apps/web`)**: Deployed on **Vercel**.
-2. **Backend API (`apps/api`)**: Deployed on **Render**.
-3. **Database**: Managed PostgreSQL on **Neon.tech**.
-4. **Code Execution**: Configured via cloud-hosted **Judge0 API**.
+1. **Frontend (`apps/web`) & Backend API (`apps/api`)**: 
+   - Deployed natively on an **Azure Ubuntu VM**.
+   - Managed by **PM2** for process monitoring and zero-downtime restarts.
+2. **Database**: 
+   - Primary database is hosted on **Neon.tech** (Serverless Managed PostgreSQL).
+3. **Code Execution Engine (Judge0)**: 
+   - Runs securely inside **Docker containers** directly on the Azure VM. It utilizes an isolated local PostgreSQL and Redis instance for internal job queueing to prevent bloating the cloud database.
 
 ---
 
@@ -89,15 +73,17 @@ For production deployment without managing virtual machines:
 
 The repository features an automated workflow configured in [ci-cd.yml](file:///.github/workflows/ci-cd.yml) that triggers on pushes or pull requests to the `main` branch.
 
-### 1. Integration Phase (CI)
+### 1. Integration & Build Phase (CI)
 * Clones the repository.
 * Installs dependencies via `npm ci`.
 * Generates the Prisma client types.
 * Lints the codebase (`npm run lint`).
-* Compiles the Next.js, Express, and Worker source code to check for compilation/type errors (`npm run build`).
+* Compiles the Next.js and Express source code to check for compilation/type errors.
+* Builds Docker images as artifacts (available in GHCR).
 
 ### 2. Delivery Phase (CD)
 * Automatically runs after the Integration Phase passes.
-* Logs into the **GitHub Container Registry (GHCR)**.
-* Dynamically builds Docker images for `api`, `web`, and `worker` using Docker Buildx and caches.
-* Tags and pushes the resulting images to `ghcr.io/akshatg-coder/codepro-<service>:latest`.
+* Connects to the **Azure VM** securely via SSH.
+* Pulls the latest code from the `main` branch.
+* Installs dependencies, regenerates the Prisma client, and builds the production Next.js/Express bundles locally on the VM.
+* Executes `pm2 restart all` to seamlessly restart the live services with the new code.

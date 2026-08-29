@@ -15,6 +15,9 @@ CODE_PRO/
 └── package.json          # Root workspace
 ```
 
+## Database Schema
+View the interactive entity-relationship diagram here: [CodePro DB Diagram](https://dbdiagram.io/d/6a92aaa15450bea1be9bbe62)
+
 ## Getting Started
 
 ### 1. Prerequisites
