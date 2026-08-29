@@ -97,45 +97,21 @@ jobs:
           echo "| SHA  | \`${{ steps.meta.outputs.image }}:${{ github.sha }}\` |" >> $GITHUB_STEP_SUMMARY
           echo "| Digest | \`${{ steps.push.outputs.digest }}\` |" >> $GITHUB_STEP_SUMMARY
 
-  # ─── Phase 3: Rolling Deploy to Kubernetes ───────────────────────────
-  # Uncomment and configure this job when you have a kubeconfig secret set up
-  # in your GitHub repository (Settings → Secrets → KUBECONFIG).
-  #
-  # deploy:
-  #   name: Deploy to Kubernetes
-  #   needs: build-and-push
-  #   if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-  #   runs-on: ubuntu-latest
-  #   environment: production
-  #   steps:
-  #     - name: Checkout Code
-  #       uses: actions/checkout@v4
-  #
-  #     - name: Set up kubectl
-  #       uses: azure/setup-kubectl@v3
-  #
-  #     - name: Configure kubeconfig
-  #       run: |
-  #         mkdir -p ~/.kube
-  #         echo "${{ secrets.KUBECONFIG }}" > ~/.kube/config
-  #         chmod 600 ~/.kube/config
-  #
-  #     - name: Apply K8s Manifests
-  #       run: |
-  #         kubectl apply -f k8s/secrets.yaml
-  #         kubectl apply -f k8s/postgres-deployment.yaml
-  #         kubectl apply -f k8s/redis-deployment.yaml
-  #         kubectl apply -f k8s/judge0-deployment.yaml
-  #         kubectl apply -f k8s/api-deployment.yaml
-  #         kubectl apply -f k8s/web-deployment.yaml
-  #         kubectl apply -f k8s/ingress.yaml
-  #
-  #     - name: Rolling Restart (force new image pull)
-  #       run: |
-  #         kubectl rollout restart deployment/api
-  #         kubectl rollout restart deployment/web
-  #
-  #     - name: Verify Rollout
-  #       run: |
-  #         kubectl rollout status deployment/api    --timeout=120s
-  #         kubectl rollout status deployment/web    --timeout=120s
+  # ─── Phase 3: Auto-Deploy to Azure VM via SSH ────────────────────────
+  deploy:
+    name: Deploy to Azure VM
+    needs: build-and-push
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.AZURE_VM_HOST }}
+          username: ${{ secrets.AZURE_VM_USERNAME }}
+          key: ${{ secrets.AZURE_VM_SSH_KEY }}
+          script: |
+            cd codePro
+            docker-compose -f docker-compose.prod.yml pull
+            docker-compose -f docker-compose.prod.yml up -d
