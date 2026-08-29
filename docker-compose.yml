@@ -13,6 +13,7 @@ services:
       - "5432:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
+      - ./scripts/init-db.sql:/docker-entrypoint-initdb.d/init-db.sql
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U codepro"]
       interval: 10s
@@ -33,7 +34,7 @@ services:
     container_name: judge0_server
     restart: always
     ports:
-      - "2358:2358"
+      - "127.0.0.1:2358:2358"
     volumes:
       - ./judge0.conf:/judge0.conf:ro
     privileged: true

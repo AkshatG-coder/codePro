@@ -2,21 +2,21 @@
 
 ## Monorepo Structure (Turborepo + npm workspaces)
 
-```
+```text
 CODE_PRO/
 ├── apps/
-│   └── web/              # Next.js 16 App (TypeScript + Tailwind)
+│   ├── web/              # Next.js 16 Frontend & NextAuth
+│   └── api/              # Express Backend API
 ├── packages/
 │   └── db/               # Prisma schema + generated client (shared)
-├── scripts/              # Problem-setting & seed utilities (Node.js/TS)
-├── docker-compose.yml    # Judge0 CE + PostgreSQL + Redis
-├── judge0.conf           # Judge0 worker configuration
+├── scripts/              # Problem-setting & seed utilities
+├── docker-compose.yml    # Judge0 CE + Redis (Local infrastructure)
 ├── turbo.json            # Turborepo pipeline
 └── package.json          # Root workspace
 ```
 
-## Database Schema
-View the interactive entity-relationship diagram here: [CodePro DB Diagram](https://dbdiagram.io/d/6a92aaa15450bea1be9bbe62)
+## Architecture & Database Schema
+View the interactive System Architecture, Entity-Relationship, and Code Execution Sequence diagrams here: [CodePro Architecture Diagrams](https://app.eraser.io/workspace/96aW9eTwjO2aArt9LhlO)
 
 ## Getting Started
 

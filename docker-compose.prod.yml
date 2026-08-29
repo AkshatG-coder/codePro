@@ -1,7 +1,42 @@
-version: '3.8'
-
 services:
-  # ─── PostgreSQL Database ───────────────────────────────────────
+  # ─── Next.js Frontend ──────────────────────────────────────────
+  web:
+    image: ghcr.io/akshatg-coder/codepro-web:latest
+    container_name: codepro_web
+    restart: always
+    ports:
+      - "127.0.0.1:3000:3000"
+    env_file: .env
+    environment:
+      - NODE_ENV=production
+      - JUDGE0_API_URL=http://judge0-server:2358
+    depends_on:
+      judge0-server:
+        condition: service_started
+    networks:
+      - default
+      - webnet
+
+  # ─── Express API Server ────────────────────────────────────────
+  api:
+    image: ghcr.io/akshatg-coder/codepro-api:latest
+    container_name: codepro_api
+    restart: always
+    ports:
+      - "127.0.0.1:4000:4000"
+    env_file: .env
+    environment:
+      - NODE_ENV=production
+      - PORT=4000
+      - JUDGE0_API_URL=http://judge0-server:2358
+    depends_on:
+      judge0-server:
+        condition: service_started
+    networks:
+      - default
+      - webnet
+
+  # ─── PostgreSQL Database (Judge0 internal only) ────────────────
   db:
     image: postgres:17-alpine
     container_name: codepro_db
@@ -11,7 +46,7 @@ services:
       POSTGRES_PASSWORD: codepro_secret
       POSTGRES_DB: codepro
     ports:
-      - "5432:5432"
+      - "127.0.0.1:5432:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
       - ./scripts/init-db.sql:/docker-entrypoint-initdb.d/init-db.sql:ro
@@ -27,22 +62,19 @@ services:
     container_name: codepro_redis
     restart: always
     ports:
-      - "6379:6379"
+      - "127.0.0.1:6379:6379"
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 5s
       timeout: 5s
       retries: 5
 
-  # ─── Judge0 CE Server ─────────────────────────────────────────
+  # ─── Judge0 CE Server (Custom image with baked-in config) ──────
   judge0-server:
-    image: judge0/judge0:1.13.1
+    image: ghcr.io/akshatg-coder/codepro-judge0:latest
     container_name: codepro_judge0_server
     restart: always
-    ports:
-      - "2358:2358"
     volumes:
-      - ./judge0.conf:/judge0.conf:ro
       - /sys/fs/cgroup:/sys/fs/cgroup:rw
     privileged: true
     depends_on:
@@ -56,11 +88,10 @@ services:
 
   # ─── Judge0 CE Workers ────────────────────────────────────────
   judge0-workers:
-    image: judge0/judge0:1.13.1
+    image: ghcr.io/akshatg-coder/codepro-judge0:latest
     container_name: codepro_judge0_workers
     restart: always
     volumes:
-      - ./judge0.conf:/judge0.conf:ro
       - /sys/fs/cgroup:/sys/fs/cgroup:rw
     privileged: true
     depends_on:
@@ -70,6 +101,24 @@ services:
     environment:
       - JUDGE0_TELEMETRY_ENABLE=false
 
+  # ─── Auto-Cleanup: Wipes Judge0 junk data every 6 hours ───────
+  db-cleanup:
+    image: postgres:17-alpine
+    container_name: codepro_db_cleanup
+    restart: always
+    depends_on:
+      db:
+        condition: service_healthy
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        echo "🧹 Judge0 DB cleanup sidecar started (every 6 hours)"
+        while true; do
+          sleep 21600
+          echo "$$(date) – Truncating Judge0 submissions..."
+          PGPASSWORD=codepro_secret psql -h db -U codepro -d judge0 -c "TRUNCATE TABLE submissions CASCADE;" 2>/dev/null || echo "  ⚠ judge0 DB not ready yet, skipping"
+          echo "$$(date) – Cleanup complete"
+        done
 
 volumes:
   pgdata:
