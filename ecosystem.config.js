@@ -1,3 +1,5 @@
+require('dotenv').config();
+
 module.exports = {
   apps: [
     {
@@ -8,13 +10,15 @@ module.exports = {
       env: {
         PORT: 3000,
         NODE_ENV: "production",
-        DATABASE_URL: "postgresql://codepro:codepro_secret@localhost:5432/codepro",
-        AUTH_SECRET: "codepro_prod_secret_32chars_long_key",
-        AUTH_URL: "http://codepro.akshatg.codes",
-        AUTH_TRUST_HOST: "true",
-        JUDGE0_API_URL: "http://localhost:2358",
-        NEXT_PUBLIC_APP_URL: "http://codepro.akshatg.codes",
-        JUDGE0_CALLBACK_SECRET: "secure-random-string-for-webhook",
+        DATABASE_URL: process.env.DATABASE_URL,
+        AUTH_SECRET: process.env.AUTH_SECRET,
+        AUTH_URL: process.env.AUTH_URL,
+        AUTH_TRUST_HOST: process.env.AUTH_TRUST_HOST,
+        GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID,
+        GOOGLE_CLIENT_SECRET: process.env.GOOGLE_CLIENT_SECRET,
+        JUDGE0_API_URL: process.env.JUDGE0_API_URL,
+        NEXT_PUBLIC_APP_URL: process.env.NEXT_PUBLIC_APP_URL,
+        JUDGE0_CALLBACK_SECRET: process.env.JUDGE0_CALLBACK_SECRET,
       },
     },
     {
@@ -24,10 +28,10 @@ module.exports = {
       env: {
         PORT: 4000,
         NODE_ENV: "production",
-        DATABASE_URL: "postgresql://codepro:codepro_secret@localhost:5432/codepro",
-        JWT_SECRET: "codepro_jwt_secret_replace_in_production",
-        JUDGE0_API_URL: "http://localhost:2358",
-        FRONTEND_URL: "http://codepro.akshatg.codes",
+        DATABASE_URL: process.env.DATABASE_URL,
+        JWT_SECRET: process.env.JWT_SECRET,
+        JUDGE0_API_URL: process.env.JUDGE0_API_URL,
+        FRONTEND_URL: process.env.FRONTEND_URL,
       },
     },
   ],
