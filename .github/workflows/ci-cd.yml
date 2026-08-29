@@ -111,6 +111,10 @@ jobs:
           username: ${{ secrets.AZURE_VM_USERNAME }}
           key: ${{ secrets.AZURE_VM_SSH_KEY }}
           script: |
+            docker system prune -af --volumes
             cd codePro
-            docker-compose -f docker-compose.prod.yml pull
-            docker-compose -f docker-compose.prod.yml up -d
+            git pull origin main
+            npm ci
+            npm run db:generate
+            npm run build
+            pm2 restart all
