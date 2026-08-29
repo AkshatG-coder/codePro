@@ -33,9 +33,15 @@ export async function PUT(req: NextRequest) {
     const url = new URL(req.url);
     const submissionTestCaseId = url.searchParams.get("submissionTestCaseId");
     const submissionId = url.searchParams.get("submissionId");
+    const token = url.searchParams.get("token");
 
-    if (!submissionTestCaseId || !submissionId) {
+    if (!submissionTestCaseId || !submissionId || !token) {
       return NextResponse.json({ error: "Missing query parameters" }, { status: 400 });
+    }
+
+    const expectedToken = process.env.JUDGE0_CALLBACK_SECRET || "default_unsafe_secret";
+    if (token !== expectedToken) {
+      return NextResponse.json({ error: "Unauthorized: Invalid webhook token" }, { status: 401 });
     }
 
     const body = await req.json();
@@ -57,7 +63,7 @@ export async function PUT(req: NextRequest) {
     await prisma.submissionTestCase.update({
       where: { id: submissionTestCaseId },
       data: {
-        status: mappedStatus as any,
+        status: mappedStatus as "AC" | "WA" | "TLE" | "CE" | "RE" | "SE" | "MLE" | "PENDING",
         time: body.time ? parseFloat(body.time) : null,
         memory: body.memory ? body.memory / 1024 : null, // KB to MB
         stderr: body.stderr,
@@ -69,9 +75,10 @@ export async function PUT(req: NextRequest) {
     await finalizeSubmissionIfComplete(submissionId);
 
     return NextResponse.json({ success: true });
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error("Webhook error:", err);
-    return NextResponse.json({ error: err.message }, { status: 500 });
+    const message = err instanceof Error ? err.message : "Unknown error";
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }
 
@@ -109,7 +116,7 @@ async function finalizeSubmissionIfComplete(submissionId: string) {
 
   await prisma.submission.update({
     where: { id: submissionId },
-    data: { status: finalStatus as any, time: avgTime, memory: maxMem },
+    data: { status: finalStatus as "AC" | "WA" | "TLE" | "CE" | "RE" | "SE" | "MLE", time: avgTime, memory: maxMem },
   });
 
   // Update contest points if this was an AC submission inside a contest

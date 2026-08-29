@@ -5,6 +5,7 @@ import { useSession } from "next-auth/react";
 import dynamic from "next/dynamic";
 import ReactMarkdown from "react-markdown";
 import { formatDistanceToNow } from "date-fns";
+import axios from "axios";
 
 // Monaco must be dynamically loaded (no SSR)
 const MonacoEditor = dynamic(() => import("@monaco-editor/react"), { ssr: false });
@@ -30,20 +31,20 @@ interface SubmissionStatus {
 }
 
 const LANGUAGES = [
-  { id: 54,  label: "C++ (G++ 9.2)", monacoId: "cpp"        },
-  { id: 63,  label: "JavaScript",    monacoId: "javascript"  },
-  { id: 73,  label: "Rust",          monacoId: "rust"        },
+  { id: 54, label: "C++ (G++ 9.2)", monacoId: "cpp" },
+  { id: 63, label: "JavaScript", monacoId: "javascript" },
+  { id: 73, label: "Rust", monacoId: "rust" },
 ];
 
 const STATUS_META: Record<string, { label: string; color: string; bg: string }> = {
-  PENDING: { label: "...",  color: "var(--text-muted)",    bg: "var(--bg-elevated)" },
-  AC:      { label: "✓",   color: "var(--accent-green)",  bg: "rgba(63,185,80,0.2)"  },
-  WA:      { label: "✗",   color: "var(--accent-red)",    bg: "rgba(248,81,73,0.2)"  },
-  TLE:     { label: "TLE", color: "var(--accent-purple)", bg: "rgba(163,113,247,0.2)"},
-  MLE:     { label: "MLE", color: "var(--accent-purple)", bg: "rgba(163,113,247,0.2)"},
-  CE:      { label: "CE",  color: "var(--accent-orange)", bg: "rgba(227,179,65,0.2)" },
-  RE:      { label: "RE",  color: "var(--accent-red)",    bg: "rgba(248,81,73,0.15)" },
-  SE:      { label: "SE",  color: "var(--text-muted)",    bg: "var(--bg-elevated)"   },
+  PENDING: { label: "...", color: "var(--text-muted)", bg: "var(--bg-elevated)" },
+  AC: { label: "✓", color: "var(--accent-green)", bg: "rgba(63,185,80,0.2)" },
+  WA: { label: "✗", color: "var(--accent-red)", bg: "rgba(248,81,73,0.2)" },
+  TLE: { label: "TLE", color: "var(--accent-purple)", bg: "rgba(163,113,247,0.2)" },
+  MLE: { label: "MLE", color: "var(--accent-purple)", bg: "rgba(163,113,247,0.2)" },
+  CE: { label: "CE", color: "var(--accent-orange)", bg: "rgba(227,179,65,0.2)" },
+  RE: { label: "RE", color: "var(--accent-red)", bg: "rgba(248,81,73,0.15)" },
+  SE: { label: "SE", color: "var(--text-muted)", bg: "var(--bg-elevated)" },
 };
 
 interface Props {
@@ -60,13 +61,13 @@ interface Props {
 export default function ProblemIDE({ problem, contestId }: Props) {
   const { data: session } = useSession();
 
-  const [tab, setTab]               = useState<"problem" | "submissions">("problem");
-  const [langId, setLangId]         = useState(54);
-  const [code, setCode]             = useState("");
+  const [tab, setTab] = useState<"problem" | "submissions">("problem");
+  const [langId, setLangId] = useState(54);
+  const [code, setCode] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [currentSub, setCurrentSub] = useState<SubmissionStatus | null>(null);
-  const [pastSubs, setPastSubs]     = useState<SubmissionStatus[]>([]);
-  const [error, setError]           = useState<string | null>(null);
+  const [pastSubs, setPastSubs] = useState<SubmissionStatus[]>([]);
+  const [error, setError] = useState<string | null>(null);
 
   // Set default code when language changes
   useEffect(() => {
@@ -80,9 +81,8 @@ export default function ProblemIDE({ problem, contestId }: Props) {
   const fetchPastSubs = useCallback(async () => {
     if (!session) return;
     try {
-      const res = await fetch(`/api/submission/problem/${problem.id}`);
-      const data = await res.json();
-      if (data.success) setPastSubs(data.data);
+      const res = await axios.get(`/api/submission/problem/${problem.id}`);
+      if (res.data.success) setPastSubs(res.data.data);
     } catch { /* ignore */ }
   }, [session, problem.id]);
 
@@ -97,7 +97,7 @@ export default function ProblemIDE({ problem, contestId }: Props) {
       try {
         const data = JSON.parse(event.data);
         if (!data.success || !data.data) return;
-        
+
         const sub = data.data;
         setCurrentSub(sub);
 
@@ -133,15 +133,12 @@ export default function ProblemIDE({ problem, contestId }: Props) {
     setTab("problem");
 
     try {
-      const res = await fetch("/api/submission", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ problemId: problem.id, contestId, code, languageId: langId }),
+      const res = await axios.post("/api/submission", {
+        problemId: problem.id, contestId, code, languageId: langId
       });
-      const data = await res.json();
-      if (!res.ok) { setError(data.error ?? "Submission failed"); return; }
 
-      const { submissionId } = data;
+      const { submissionId } = res.data.data;
+
       // Optimistic pending state
       setCurrentSub({
         id: submissionId,
@@ -153,8 +150,9 @@ export default function ProblemIDE({ problem, contestId }: Props) {
         submissionTestCases: [],
       });
       subscribeToSubmission(submissionId);
-    } catch {
-      setError("Network error. Please try again.");
+    } catch (err: unknown) {
+      const axiosErr = err as { response?: { data?: { error?: string } } };
+      setError(axiosErr.response?.data?.error ?? "Submission failed.");
     } finally {
       setIsSubmitting(false);
     }
@@ -186,7 +184,7 @@ export default function ProblemIDE({ problem, contestId }: Props) {
         {/* Tabs */}
         <div style={{ display: "flex", borderBottom: "1px solid var(--border)", background: "var(--bg-surface)" }}>
           {["problem", "submissions"].map(t => (
-            <button key={t} onClick={() => setTab(t as any)} style={{
+            <button key={t} onClick={() => setTab(t as "problem" | "submissions")} style={{
               padding: "0.625rem 1.25rem",
               fontSize: "0.85rem",
               fontWeight: 600,

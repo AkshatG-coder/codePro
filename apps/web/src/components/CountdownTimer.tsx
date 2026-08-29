@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { formatDistanceToNow } from "date-fns";
 
 export default function CountdownTimer({ endTime, startTime }: { endTime: Date; startTime: Date }) {
   const [now, setNow] = useState(new Date());

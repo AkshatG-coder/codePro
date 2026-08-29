@@ -146,11 +146,13 @@ export default function LiveLeaderboard({ contestId, isActive, initialStandings 
                     <td>
                       <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
                         {s.user.image ? (
-                          <img
+                          <Image
                             src={s.user.image}
                             alt={s.user.name ?? ""}
+                            width={36}
+                            height={36}
                             style={{
-                              width: 36, height: 36, borderRadius: "50%",
+                              borderRadius: "50%",
                               border: isTop3 ? `2px solid ${MEDAL_COLORS[s.rank - 1]}` : "2px solid var(--border)",
                             }}
                           />

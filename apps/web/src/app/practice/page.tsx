@@ -14,7 +14,7 @@ export default async function PracticePage({
 }) {
   const { difficulty, tag } = await searchParams;
 
-  const where: any = { hidden: false };
+  const where: { hidden: boolean; difficulty?: string; tags?: { has: string } } = { hidden: false };
   if (difficulty && difficulty !== "ALL") where.difficulty = difficulty;
   if (tag) where.tags = { has: tag };
 

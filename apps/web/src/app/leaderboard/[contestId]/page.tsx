@@ -116,7 +116,7 @@ export default async function LeaderboardPage({ params }: { params: Promise<{ co
             borderRadius: "var(--radius-lg)",
           }}>
             <div style={{ fontSize: "3rem", marginBottom: "1rem" }}>⏳</div>
-            <h2 style={{ marginBottom: "0.5rem" }}>Contest hasn't started yet</h2>
+            <h2 style={{ marginBottom: "0.5rem" }}>Contest hasn&apos;t started yet</h2>
             <p style={{ color: "var(--text-muted)" }}>Come back when the contest begins to see live standings.</p>
           </div>
         ) : (

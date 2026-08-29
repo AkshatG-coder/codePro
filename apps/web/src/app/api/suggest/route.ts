@@ -29,9 +29,10 @@ export async function POST(req: NextRequest) {
     });
 
     return NextResponse.json({ success: true, id: suggestion.id }, { status: 201 });
-  } catch (error: any) {
-    if (error?.name === "ZodError") {
-      return NextResponse.json({ error: error.issues?.[0]?.message ?? "Validation failed" }, { status: 400 });
+  } catch (error: unknown) {
+    if (error instanceof Error && error.name === "ZodError") {
+      const zodErr = error as { issues?: { message?: string }[] };
+      return NextResponse.json({ error: zodErr.issues?.[0]?.message ?? "Validation failed" }, { status: 400 });
     }
     console.error(error);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });

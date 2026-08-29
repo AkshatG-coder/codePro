@@ -1,5 +1,4 @@
 import { prisma } from "@/lib/prisma";
-import Link from "next/link";
 import Image from "next/image";
 
 export const metadata = { title: "Global Leaderboard" };

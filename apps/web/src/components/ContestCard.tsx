@@ -1,6 +1,6 @@
 "use client";
 import Link from "next/link";
-import { formatDistanceToNow, isPast, isFuture } from "date-fns";
+import { formatDistanceToNow } from "date-fns";
 
 interface Contest {
   id: string;

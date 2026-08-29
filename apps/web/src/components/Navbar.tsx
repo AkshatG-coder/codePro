@@ -1,7 +1,8 @@
 "use client";
 
-import { useSession, signOut, signIn } from "next-auth/react";
+import { useSession, signOut } from "next-auth/react";
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 
 const navLinks = [
@@ -66,10 +67,12 @@ export default function Navbar() {
             <>
               <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
                 {session.user?.image ? (
-                  <img
+                  <Image
                     src={session.user.image}
                     alt={session.user.name ?? ""}
-                    style={{ width: 32, height: 32, borderRadius: "50%", border: "2px solid var(--border)" }}
+                    width={32}
+                    height={32}
+                    style={{ borderRadius: "50%", border: "2px solid var(--border)" }}
                   />
                 ) : (
                   <div style={{

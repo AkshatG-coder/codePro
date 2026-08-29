@@ -130,6 +130,7 @@ services:
       - GOOGLE_CLIENT_SECRET=my-google-client-secret
       - NEXT_PUBLIC_APP_URL=https://codepro.akshatg.codes
       - JUDGE0_API_URL=http://judge0-server:2358
+      - JUDGE0_CALLBACK_SECRET=secure-random-string-for-webhook
     ports:
       - "80:3000"
       - "3000:3000"

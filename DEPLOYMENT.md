@@ -60,7 +60,7 @@ In development, the databases and Judge0 run in containers while you run the app
 In production, all services—including the Web, API, and Worker applications—are built as optimized production containers.
 
 1. **Verify your environment variables**:
-   Create a root `.env` or verify that your services are pointing to `db` instead of `localhost` in production.
+   Create a root `.env` or verify that your services are pointing to `db` instead of `localhost` in production. Ensure `JUDGE0_CALLBACK_SECRET` is set to a secure string to authenticate webhooks from Judge0.
 2. **Build and start the complete stack**:
    ```bash
    docker compose -f docker-compose.prod.yml up --build -d

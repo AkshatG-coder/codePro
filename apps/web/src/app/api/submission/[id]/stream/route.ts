@@ -31,16 +31,16 @@ export async function GET(
       };
 
       // Helper to check if submission is finalized
-      const isFinalized = (sub: any) => {
+      const isFinalized = (sub: { status: string; submissionTestCases: { status: string }[] } | null) => {
         if (!sub) return true; // not found, consider done
         if (sub.status !== "PENDING") return true;
         // Check if all testcases are resolved
-        const allDone = sub.submissionTestCases.every((tc: any) => tc.status !== "PENDING");
+        const allDone = sub.submissionTestCases.every((tc) => tc.status !== "PENDING");
         return allDone;
       };
 
       // 1. Initial send
-      let currentSub = await fetchSubmission(submissionId);
+      const currentSub = await fetchSubmission(submissionId);
       send({ success: true, data: currentSub });
 
       if (isFinalized(currentSub)) {
@@ -52,7 +52,7 @@ export async function GET(
       const intervalId = setInterval(async () => {
         try {
           const updatedSub = await fetchSubmission(submissionId);
-          
+
           // Basic optimization: only send if something changed
           // Since we update timestamps, we can just stringify and compare
           // Or just always send it because SSE is lightweight
@@ -62,7 +62,7 @@ export async function GET(
             clearInterval(intervalId);
             controller.close();
           }
-        } catch (err) {
+        } catch {
           clearInterval(intervalId);
           controller.close();
         }

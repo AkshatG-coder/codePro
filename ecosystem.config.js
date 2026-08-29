@@ -14,6 +14,7 @@ module.exports = {
         AUTH_TRUST_HOST: "true",
         JUDGE0_API_URL: "http://localhost:2358",
         NEXT_PUBLIC_APP_URL: "http://codepro.akshatg.codes",
+        JUDGE0_CALLBACK_SECRET: "secure-random-string-for-webhook",
       },
     },
     {

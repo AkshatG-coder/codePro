@@ -1,22 +1,26 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import axios from "axios";
 
 const JUDGE0_URL = process.env.JUDGE0_API_URL ?? "http://localhost:2358";
 const JUDGE0_BATCH_LIMIT = 20; // Judge0 hard limit: max 20 per batch
 
-async function submitBatch(payloads: any[]) {
+interface Judge0Payload {
+  source_code: string;
+  language_id: number;
+  stdin: string;
+  expected_output: string;
+  callback_url: string;
+}
+
+async function submitBatch(payloads: Judge0Payload[]) {
   // Chunk into groups of ≤20 and submit sequentially
   const allTokens: { token: string }[] = [];
   for (let i = 0; i < payloads.length; i += JUDGE0_BATCH_LIMIT) {
     const chunk = payloads.slice(i, i + JUDGE0_BATCH_LIMIT);
-    const res = await fetch(`${JUDGE0_URL}/submissions/batch`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ submissions: chunk }),
-    });
-    if (!res.ok) throw new Error("Judge0 batch submission failed");
-    const tokens = await res.json() as { token: string }[];
+    const res = await axios.post(`${JUDGE0_URL}/submissions/batch`, { submissions: chunk });
+    const tokens = res.data as { token: string }[];
     allTokens.push(...tokens);
   }
   return allTokens;
@@ -70,24 +74,25 @@ export async function POST(req: NextRequest) {
     });
 
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+    const callbackSecret = process.env.JUDGE0_CALLBACK_SECRET || "default_unsafe_secret";
 
     // 5. Submit batch to Judge0 (fire-and-forget ordering — webhook receives result asynchronously)
     const judge0Payloads = testCases.map((tc: { id: string; input: string; expectedOutput: string }) => {
       // Find the corresponding SubmissionTestCase ID
-      const stc = submission.submissionTestCases.find((s: any) => s.testCaseId === tc.id);
+      const stc = submission.submissionTestCases.find((s: { testCaseId: string }) => s.testCaseId === tc.id);
       
       return {
         source_code: fullCode,
         language_id: languageId,
         stdin: tc.input,
         expected_output: tc.expectedOutput,
-        callback_url: `${appUrl}/api/webhook/judge0?submissionTestCaseId=${stc?.id}&submissionId=${submission.id}`,
+        callback_url: `${appUrl}/api/webhook/judge0?submissionTestCaseId=${stc?.id}&submissionId=${submission.id}&token=${callbackSecret}`,
       };
     });
     const tokens = await submitBatch(judge0Payloads);
 
     // 6. Save Judge0 tokens on each SubmissionTestCase
-    await Promise.all(
+    await prisma.$transaction(
       submission.submissionTestCases.map((stc: { id: string }, i: number) =>
         prisma.submissionTestCase.update({
           where: { id: stc.id },
@@ -104,8 +109,9 @@ export async function POST(req: NextRequest) {
     }
 
     return NextResponse.json({ success: true, submissionId: submission.id }, { status: 201 });
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error("Submission error:", err);
-    return NextResponse.json({ error: err.message ?? "Internal server error" }, { status: 500 });
+    const message = err instanceof Error ? err.message : "Internal server error";
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }
