@@ -137,7 +137,7 @@ export default function ProblemIDE({ problem, contestId }: Props) {
         problemId: problem.id, contestId, code, languageId: langId
       });
 
-      const { submissionId } = res.data.data;
+      const { submissionId } = res.data;
 
       // Optimistic pending state
       setCurrentSub({
