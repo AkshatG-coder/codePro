@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
-import { Prisma } from "@repo/db";
+import type { Difficulty } from "@prisma/client";
 
 export const metadata: Metadata = { title: "Practice Problems" };
 export const dynamic = "force-dynamic";
@@ -15,8 +15,8 @@ export default async function PracticePage({
 }) {
   const { difficulty, tag } = await searchParams;
 
-  const where: Prisma.ProblemWhereInput = { hidden: false };
-  if (difficulty && difficulty !== "ALL") where.difficulty = difficulty as Prisma.ProblemWhereInput["difficulty"];
+  const where: { hidden: boolean; difficulty?: Difficulty; tags?: { has: string } } = { hidden: false };
+  if (difficulty && difficulty !== "ALL") where.difficulty = difficulty as Difficulty;
   if (tag) where.tags = { has: tag };
 
   const problems = await prisma.problem.findMany({
