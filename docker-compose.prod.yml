@@ -68,7 +68,7 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
-    command: ["./scripts/server"]
+    command: ["sh", "-c", "ln -sf /var/local/lib/isolate/0/box /box && exec ./scripts/server"]
     environment:
       - JUDGE0_TELEMETRY_ENABLE=false
 
@@ -86,7 +86,7 @@ services:
     depends_on:
       judge0-server:
         condition: service_started
-    command: ["./scripts/workers"]
+    command: ["sh", "-c", "ln -sf /var/local/lib/isolate/0/box /box && exec ./scripts/workers"]
     environment:
       - JUDGE0_TELEMETRY_ENABLE=false
 
