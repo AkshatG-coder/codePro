@@ -56,19 +56,17 @@ services:
   judge0-server:
     image: ghcr.io/akshatg-coder/codepro-judge0:latest
     container_name: codepro_judge0_server
-    user: root
     restart: always
     volumes:
+      - ./judge0.conf:/judge0.conf:ro
       - /sys/fs/cgroup:/sys/fs/cgroup:rw
     privileged: true
-    tmpfs:
-      - /tmp:exec
     depends_on:
       db:
         condition: service_healthy
       redis:
         condition: service_healthy
-    command: ["sh", "-c", "ln -sf /var/local/lib/isolate/0/box /box && exec ./scripts/server"]
+    command: ["./scripts/server"]
     environment:
       - JUDGE0_TELEMETRY_ENABLE=false
 
@@ -76,17 +74,15 @@ services:
   judge0-workers:
     image: ghcr.io/akshatg-coder/codepro-judge0:latest
     container_name: codepro_judge0_workers
-    user: root
     restart: always
     volumes:
+      - ./judge0.conf:/judge0.conf:ro
       - /sys/fs/cgroup:/sys/fs/cgroup:rw
     privileged: true
-    tmpfs:
-      - /tmp:exec
     depends_on:
       judge0-server:
         condition: service_started
-    command: ["sh", "-c", "ln -sf /var/local/lib/isolate/0/box /box && exec ./scripts/workers"]
+    command: ["./scripts/workers"]
     environment:
       - JUDGE0_TELEMETRY_ENABLE=false
 

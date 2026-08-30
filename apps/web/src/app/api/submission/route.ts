@@ -86,9 +86,9 @@ export async function POST(req: NextRequest) {
         stdin: tc.input,
         expected_output: tc.expectedOutput,
         callback_url: `${appUrl}/api/webhook/judge0?submissionTestCaseId=${stc?.id}&submissionId=${submission.id}&token=${callbackSecret}`,
-        // Fix for cgroup v2 SE error:
-        enable_per_process_and_thread_time_limit: false,
-        enable_per_process_and_thread_memory_limit: false,
+        // Use per-process limits (avoids --cg flag which fails inside Docker)
+        enable_per_process_and_thread_time_limit: true,
+        enable_per_process_and_thread_memory_limit: true,
       };
     });
     const tokens = await submitBatch(judge0Payloads);
