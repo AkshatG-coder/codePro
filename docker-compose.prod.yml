@@ -56,10 +56,14 @@ services:
   judge0-server:
     image: ghcr.io/akshatg-coder/codepro-judge0:latest
     container_name: codepro_judge0_server
+    user: root
     restart: always
     volumes:
       - /sys/fs/cgroup:/sys/fs/cgroup:rw
     privileged: true
+    tmpfs:
+      - /tmp:exec
+      - /box:exec,rw,mode=777
     depends_on:
       db:
         condition: service_healthy
