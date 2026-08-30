@@ -89,14 +89,7 @@ jobs:
           cache-from: type=gha,scope=${{ matrix.service }}
           cache-to:   type=gha,scope=${{ matrix.service }},mode=max
 
-      - name: Write Job Summary
-        run: |
-          echo "### ✅ ${{ matrix.service }} image published" >> $GITHUB_STEP_SUMMARY
-          echo "| Tag | Value |" >> $GITHUB_STEP_SUMMARY
-          echo "|-----|-------|" >> $GITHUB_STEP_SUMMARY
-          echo "| \`latest\` | \`${{ steps.meta.outputs.image }}:latest\` |" >> $GITHUB_STEP_SUMMARY
-          echo "| SHA  | \`${{ steps.meta.outputs.image }}:${{ github.sha }}\` |" >> $GITHUB_STEP_SUMMARY
-          echo "| Digest | \`${{ steps.push.outputs.digest }}\` |" >> $GITHUB_STEP_SUMMARY
+
 
   # ─── Phase 3: Deploy to Azure VM ────────────────────────────────────
   deploy:

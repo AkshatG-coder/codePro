@@ -1,10 +1,6 @@
 import { PrismaClient } from "@prisma/client";
 
-const globalForPrisma = globalThis as unknown as { prisma: PrismaClient };
+// Single shared Prisma client instance for the entire app
+export const prisma = new PrismaClient({ log: ["error"] });
 
-export const prisma =
-  globalForPrisma.prisma ??
-  new PrismaClient({ log: ["error"] });
-
-if (process.env.NODE_ENV !== "production") globalForPrisma.prisma = prisma;
 export default prisma;

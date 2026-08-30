@@ -13,7 +13,7 @@ export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
     const result = registerSchema.safeParse(body);
-    
+
     if (!result.success) {
       return NextResponse.json({ error: result.error.issues[0]?.message || "Invalid input" }, { status: 400 });
     }
