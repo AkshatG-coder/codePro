@@ -17,24 +17,7 @@ services:
       - default
       - webnet
 
-  # ─── Express API Server ────────────────────────────────────────
-  api:
-    image: ghcr.io/akshatg-coder/codepro-api:latest
-    container_name: codepro_api
-    restart: always
-    ports:
-      - "127.0.0.1:4000:4000"
-    env_file: .env
-    environment:
-      - NODE_ENV=production
-      - PORT=4000
-      - JUDGE0_API_URL=http://judge0-server:2358
-    depends_on:
-      judge0-server:
-        condition: service_started
-    networks:
-      - default
-      - webnet
+
 
   # ─── PostgreSQL Database (Judge0 internal only) ────────────────
   db:
