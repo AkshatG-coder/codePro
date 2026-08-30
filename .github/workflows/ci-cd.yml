@@ -51,8 +51,6 @@ jobs:
         include:
           - service: web
             dockerfile: ./apps/web/Dockerfile
-          - service: api
-            dockerfile: ./apps/api/Dockerfile
           - service: judge0
             dockerfile: ./docker/judge0/Dockerfile
     steps:
