@@ -48,7 +48,7 @@ export async function GET(
         return;
       }
 
-      // 2. Poll DB every 1 second (internal polling, no network overhead for client)
+      // 2. Poll DB every 2.5 seconds to reduce load on Neon DB
       const intervalId = setInterval(async () => {
         try {
           const updatedSub = await fetchSubmission(submissionId);
@@ -66,7 +66,7 @@ export async function GET(
           clearInterval(intervalId);
           controller.close();
         }
-      }, 1000);
+      }, 2500);
 
       // 3. Cleanup on disconnect
       req.signal.addEventListener("abort", () => {
