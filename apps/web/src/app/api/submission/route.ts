@@ -76,7 +76,6 @@ export async function POST(req: NextRequest) {
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
     const callbackSecret = process.env.JUDGE0_CALLBACK_SECRET || "default_unsafe_secret";
 
-    // 5. Submit batch to Judge0 (fire-and-forget ordering — webhook receives result asynchronously)
     const judge0Payloads = testCases.map((tc: { id: string; input: string; expectedOutput: string }) => {
       // Find the corresponding SubmissionTestCase ID
       const stc = submission.submissionTestCases.find((s: { testCaseId: string }) => s.testCaseId === tc.id);
@@ -87,6 +86,9 @@ export async function POST(req: NextRequest) {
         stdin: tc.input,
         expected_output: tc.expectedOutput,
         callback_url: `${appUrl}/api/webhook/judge0?submissionTestCaseId=${stc?.id}&submissionId=${submission.id}&token=${callbackSecret}`,
+        // Fix for cgroup v2 SE error:
+        enable_per_process_and_thread_time_limit: false,
+        enable_per_process_and_thread_memory_limit: false,
       };
     });
     const tokens = await submitBatch(judge0Payloads);

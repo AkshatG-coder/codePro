@@ -60,6 +60,7 @@ services:
     volumes:
       - /sys/fs/cgroup:/sys/fs/cgroup:rw
     privileged: true
+    cgroupns: host
     depends_on:
       db:
         condition: service_healthy
@@ -77,6 +78,7 @@ services:
     volumes:
       - /sys/fs/cgroup:/sys/fs/cgroup:rw
     privileged: true
+    cgroupns: host
     depends_on:
       judge0-server:
         condition: service_started
