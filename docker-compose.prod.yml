@@ -63,7 +63,6 @@ services:
     privileged: true
     tmpfs:
       - /tmp:exec
-      - /box:exec,rw,mode=777
     depends_on:
       db:
         condition: service_healthy
@@ -84,7 +83,6 @@ services:
     privileged: true
     tmpfs:
       - /tmp:exec
-      - /box:exec,rw,mode=777
     depends_on:
       judge0-server:
         condition: service_started
