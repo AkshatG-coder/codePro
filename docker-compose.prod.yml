@@ -10,6 +10,7 @@ services:
     environment:
       - NODE_ENV=production
       - JUDGE0_API_URL=http://judge0-server:2358
+      - REDIS_URL=redis://redis:6379
     depends_on:
       judge0-server:
         condition: service_started

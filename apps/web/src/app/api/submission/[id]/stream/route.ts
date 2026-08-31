@@ -1,5 +1,6 @@
 import { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { redis } from "@/lib/redis";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -48,29 +49,37 @@ export async function GET(
         return;
       }
 
-      // 2. Poll DB every 2.5 seconds to reduce load on Neon DB
-      const intervalId = setInterval(async () => {
-        try {
-          const updatedSub = await fetchSubmission(submissionId);
+      // 2. Subscribe to Redis for updates
+      const channel = `submission:${submissionId}`;
+      const subscriber = redis.duplicate();
 
-          // Basic optimization: only send if something changed
-          // Since we update timestamps, we can just stringify and compare
-          // Or just always send it because SSE is lightweight
-          send({ success: true, data: updatedSub });
+      subscriber.on("message", async (chan, message) => {
+        if (chan === channel) {
+          try {
+            const updatedSub = await fetchSubmission(submissionId);
+            send({ success: true, data: updatedSub });
 
-          if (isFinalized(updatedSub)) {
-            clearInterval(intervalId);
+            if (isFinalized(updatedSub)) {
+              subscriber.quit();
+              controller.close();
+            }
+          } catch (err) {
+            console.error("Error in SSE redis subscriber", err);
+            subscriber.quit();
             controller.close();
           }
-        } catch {
-          clearInterval(intervalId);
-          controller.close();
         }
-      }, 2500);
+      });
+
+      subscriber.subscribe(channel, (err) => {
+        if (err) {
+          console.error("Failed to subscribe to Redis:", err);
+        }
+      });
 
       // 3. Cleanup on disconnect
       req.signal.addEventListener("abort", () => {
-        clearInterval(intervalId);
+        subscriber.quit();
         controller.close();
       });
     },

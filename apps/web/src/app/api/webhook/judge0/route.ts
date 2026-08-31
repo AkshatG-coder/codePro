@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { redis } from "@/lib/redis";
 
 // Map Judge0 status_id to our SubmissionStatus enum
 function mapStatus(statusId: number): string {
@@ -73,6 +74,9 @@ export async function PUT(req: NextRequest) {
 
     // Finalize submission if all test cases are complete
     await finalizeSubmissionIfComplete(submissionId);
+
+    // Publish update event to Redis Pub/Sub so SSE clients get notified immediately
+    await redis.publish(`submission:${submissionId}`, JSON.stringify({ event: "update" }));
 
     return NextResponse.json({ success: true });
   } catch (err: unknown) {

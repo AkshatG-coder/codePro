@@ -1,5 +1,8 @@
 "use client";
 
+import { useState } from "react";
+import axios from "axios";
+
 const STEPS = [
   {
     icon: "🍴",
@@ -75,9 +78,48 @@ git push origin add/your-problem-slug
   },
 ];
 
+const TAGS_OPTIONS = ["Arrays", "HashMap", "Binary Search", "DP", "Graphs", "Trees", "Strings", "Math", "Greedy", "Sorting", "Two Pointers", "Sliding Window"];
+
 export default function ContributePage() {
+  const [form, setForm] = useState({
+    title: "",
+    difficulty: "MEDIUM",
+    description: "",
+    tags: [] as string[],
+    sampleInput: "",
+    sampleOutput: "",
+    githubUsername: "",
+    referenceLink: "",
+  });
+  const [submitting, setSubmitting] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const toggleTag = (tag: string) => {
+    setForm(f => ({
+      ...f,
+      tags: f.tags.includes(tag) ? f.tags.filter(t => t !== tag) : [...f.tags, tag].slice(0, 5),
+    }));
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSubmitting(true);
+    setError(null);
+    try {
+      await axios.post("/api/suggest", form);
+      setSubmitted(true);
+    } catch (err: unknown) {
+      const axiosErr = err as { response?: { data?: { error?: string } } };
+      setError(axiosErr.response?.data?.error ?? "Network error, please try again.");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   return (
     <div style={{ minHeight: "100vh", paddingBottom: "5rem" }}>
+
       {/* Hero Section */}
       <div style={{
         background: "linear-gradient(135deg, var(--bg-base) 0%, var(--bg-surface) 100%)",
@@ -108,93 +150,268 @@ export default function ContributePage() {
             Contribute a Problem
           </h1>
           <p style={{ color: "var(--text-secondary)", fontSize: "1.05rem", maxWidth: 560, margin: "0 auto" }}>
-            Add your own algorithmic challenges directly to our platform.
-            We review every Pull Request and guide you through the process.
+            Suggest a problem idea or contribute directly via GitHub Pull Request.
+            We review every submission and guide you through the process.
           </p>
         </div>
       </div>
 
-      <div className="container" style={{ maxWidth: 800, marginTop: "3rem" }}>
-        <h2 style={{ fontSize: "1.5rem", fontWeight: 700, marginBottom: "0.5rem", textAlign: "center" }}>
-          🔧 How to Contribute via GitHub PR
-        </h2>
-        <p style={{ color: "var(--text-muted)", fontSize: "1rem", marginBottom: "2.5rem", textAlign: "center" }}>
-          Follow this step-by-step guide to add a new problem to the platform.
-        </p>
+      <div className="container" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "3rem", marginTop: "3rem", alignItems: "start" }}>
 
-        <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
-          {STEPS.map((step, i) => (
-            <div key={i} style={{
-              background: "var(--bg-surface)",
-              border: "1px solid var(--border)",
-              borderRadius: "var(--radius-md)",
-              overflow: "hidden",
-              transition: "border-color 0.2s",
+        {/* LEFT: Suggestion Form */}
+        <div>
+          <h2 style={{ fontSize: "1.25rem", fontWeight: 700, marginBottom: "0.5rem" }}>
+            💡 Suggest a Problem
+          </h2>
+          <p style={{ color: "var(--text-muted)", fontSize: "0.875rem", marginBottom: "1.5rem" }}>
+            Don&apos;t have time to write the full PR? Just fill this out — we&apos;ll review it and reach out via GitHub.
+          </p>
+
+          {submitted ? (
+            <div style={{
+              background: "rgba(63,185,80,0.1)", border: "1px solid rgba(63,185,80,0.3)",
+              borderRadius: "var(--radius-lg)", padding: "2rem", textAlign: "center",
             }}>
-              <div style={{
-                display: "flex", alignItems: "flex-start", gap: "1rem",
-                padding: "1.25rem",
-              }}>
-                <div style={{
-                  width: 40, height: 40, borderRadius: "50%", flexShrink: 0,
-                  background: "rgba(47,129,247,0.15)", border: "1px solid rgba(47,129,247,0.3)",
-                  display: "flex", alignItems: "center", justifyContent: "center",
-                  fontSize: "1rem", fontWeight: 700, color: "var(--accent-blue)"
-                }}>
-                  {i + 1}
-                </div>
-                <div style={{ flex: 1 }}>
-                  <div style={{ fontWeight: 700, fontSize: "1.1rem", marginBottom: "0.25rem" }}>
-                    {step.icon} {step.title}
-                  </div>
-                  <p style={{ color: "var(--text-muted)", fontSize: "0.9rem", marginBottom: "1rem", lineHeight: 1.5 }}>
-                    {step.desc}
-                  </p>
-                  <pre style={{
-                    background: "var(--bg-base)",
-                    border: "1px solid var(--border-muted)",
-                    borderRadius: "var(--radius-sm)",
-                    padding: "0.875rem",
-                    fontSize: "0.85rem",
-                    fontFamily: "'JetBrains Mono', monospace",
-                    color: "var(--accent-blue)",
-                    overflow: "auto",
-                    margin: 0,
-                    whiteSpace: "pre-wrap",
-                    lineHeight: 1.6,
-                  }}>
-                    {step.code}
-                  </pre>
+              <div style={{ fontSize: "3rem", marginBottom: "1rem" }}>🎉</div>
+              <h3 style={{ color: "var(--accent-green)", marginBottom: "0.5rem" }}>Suggestion submitted!</h3>
+              <p style={{ color: "var(--text-secondary)", fontSize: "0.9rem" }}>
+                We&apos;ll review your idea and may reach out to guide you through contributing a PR.
+              </p>
+              <button
+                onClick={() => { setSubmitted(false); setForm({ title: "", difficulty: "MEDIUM", description: "", tags: [], sampleInput: "", sampleOutput: "", githubUsername: "", referenceLink: "" }); }}
+                className="btn btn-secondary"
+                style={{ marginTop: "1.25rem" }}
+              >
+                Suggest Another
+              </button>
+            </div>
+          ) : (
+            <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
+              {/* Title */}
+              <div>
+                <label style={{ fontSize: "0.8rem", fontWeight: 600, color: "var(--text-secondary)", display: "block", marginBottom: "0.375rem" }}>
+                  Problem Title *
+                </label>
+                <input
+                  className="input"
+                  required
+                  placeholder='e.g. "Two Sum", "Longest Common Subsequence"'
+                  value={form.title}
+                  onChange={e => setForm(f => ({ ...f, title: e.target.value }))}
+                />
+              </div>
+
+              {/* Difficulty */}
+              <div>
+                <label style={{ fontSize: "0.8rem", fontWeight: 600, color: "var(--text-secondary)", display: "block", marginBottom: "0.375rem" }}>
+                  Difficulty *
+                </label>
+                <div style={{ display: "flex", gap: "0.5rem" }}>
+                  {["EASY", "MEDIUM", "HARD"].map(d => (
+                    <button key={d} type="button" onClick={() => setForm(f => ({ ...f, difficulty: d }))} style={{
+                      flex: 1, padding: "0.5rem",
+                      borderRadius: "var(--radius-md)",
+                      border: form.difficulty === d
+                        ? `2px solid ${d === "EASY" ? "var(--accent-green)" : d === "MEDIUM" ? "var(--accent-yellow)" : "var(--accent-red)"}`
+                        : "1px solid var(--border)",
+                      background: form.difficulty === d
+                        ? `rgba(${d === "EASY" ? "63,185,80" : d === "MEDIUM" ? "210,153,34" : "248,81,73"},0.12)`
+                        : "var(--bg-elevated)",
+                      color: form.difficulty === d
+                        ? (d === "EASY" ? "var(--accent-green)" : d === "MEDIUM" ? "var(--accent-yellow)" : "var(--accent-red)")
+                        : "var(--text-muted)",
+                      fontWeight: 600, fontSize: "0.85rem", cursor: "pointer",
+                    }}>
+                      {d}
+                    </button>
+                  ))}
                 </div>
               </div>
-            </div>
-          ))}
+
+              {/* Tags */}
+              <div>
+                <label style={{ fontSize: "0.8rem", fontWeight: 600, color: "var(--text-secondary)", display: "block", marginBottom: "0.375rem" }}>
+                  Tags (up to 5)
+                </label>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: "0.375rem" }}>
+                  {TAGS_OPTIONS.map(tag => (
+                    <button key={tag} type="button" onClick={() => toggleTag(tag)} style={{
+                      padding: "3px 10px", borderRadius: 20, fontSize: "0.75rem", cursor: "pointer",
+                      background: form.tags.includes(tag) ? "rgba(47,129,247,0.2)" : "var(--bg-elevated)",
+                      color: form.tags.includes(tag) ? "var(--accent-blue)" : "var(--text-muted)",
+                      border: form.tags.includes(tag) ? "1px solid rgba(47,129,247,0.4)" : "1px solid var(--border)",
+                      fontWeight: 500, transition: "all 0.15s",
+                    }}>
+                      {tag}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Description */}
+              <div>
+                <label style={{ fontSize: "0.8rem", fontWeight: 600, color: "var(--text-secondary)", display: "block", marginBottom: "0.375rem" }}>
+                  Problem Description * <span style={{ fontWeight: 400, color: "var(--text-muted)" }}>(brief idea is fine)</span>
+                </label>
+                <textarea
+                  className="input"
+                  required
+                  rows={4}
+                  placeholder="Describe the problem: what is given, what to find, any constraints..."
+                  value={form.description}
+                  onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
+                  style={{ resize: "vertical", fontFamily: "inherit" }}
+                />
+              </div>
+
+              {/* Sample I/O */}
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.75rem" }}>
+                <div>
+                  <label style={{ fontSize: "0.8rem", fontWeight: 600, color: "var(--text-secondary)", display: "block", marginBottom: "0.375rem" }}>
+                    Sample Input
+                  </label>
+                  <textarea
+                    className="input"
+                    rows={3}
+                    placeholder="[2,7,11,15], 9"
+                    value={form.sampleInput}
+                    onChange={e => setForm(f => ({ ...f, sampleInput: e.target.value }))}
+                    style={{ resize: "none", fontFamily: "'JetBrains Mono', monospace", fontSize: "0.8rem" }}
+                  />
+                </div>
+                <div>
+                  <label style={{ fontSize: "0.8rem", fontWeight: 600, color: "var(--text-secondary)", display: "block", marginBottom: "0.375rem" }}>
+                    Expected Output
+                  </label>
+                  <textarea
+                    className="input"
+                    rows={3}
+                    placeholder="[0, 1]"
+                    value={form.sampleOutput}
+                    onChange={e => setForm(f => ({ ...f, sampleOutput: e.target.value }))}
+                    style={{ resize: "none", fontFamily: "'JetBrains Mono', monospace", fontSize: "0.8rem" }}
+                  />
+                </div>
+              </div>
+
+              {/* GitHub + Reference */}
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.75rem" }}>
+                <div>
+                  <label style={{ fontSize: "0.8rem", fontWeight: 600, color: "var(--text-secondary)", display: "block", marginBottom: "0.375rem" }}>
+                    Your GitHub Username
+                  </label>
+                  <input
+                    className="input"
+                    placeholder="octocat"
+                    value={form.githubUsername}
+                    onChange={e => setForm(f => ({ ...f, githubUsername: e.target.value }))}
+                  />
+                </div>
+                <div>
+                  <label style={{ fontSize: "0.8rem", fontWeight: 600, color: "var(--text-secondary)", display: "block", marginBottom: "0.375rem" }}>
+                    Reference Link <span style={{ fontWeight: 400, color: "var(--text-muted)" }}>(optional)</span>
+                  </label>
+                  <input
+                    className="input"
+                    placeholder="https://leetcode.com/problems/..."
+                    value={form.referenceLink}
+                    onChange={e => setForm(f => ({ ...f, referenceLink: e.target.value }))}
+                  />
+                </div>
+              </div>
+
+              {error && (
+                <p style={{ color: "var(--accent-red)", fontSize: "0.85rem" }}>{error}</p>
+              )}
+
+              <button type="submit" disabled={submitting} className="btn btn-primary" style={{ padding: "0.75rem", fontSize: "1rem", marginTop: "0.25rem" }}>
+                {submitting ? <><span className="spinner" style={{ width: 16, height: 16 }} /> Submitting...</> : "✨ Submit Suggestion"}
+              </button>
+            </form>
+          )}
         </div>
 
-        {/* CTA */}
-        <div style={{
-          marginTop: "2rem",
-          background: "linear-gradient(135deg, rgba(163,113,247,0.1), rgba(47,129,247,0.1))",
-          border: "1px solid rgba(163,113,247,0.25)",
-          borderRadius: "var(--radius-lg)",
-          padding: "2rem",
-          display: "flex", alignItems: "center", gap: "1.5rem",
-        }}>
-          <div style={{ fontSize: "3rem" }}>⭐</div>
-          <div>
-            <div style={{ fontWeight: 700, fontSize: "1.2rem", marginBottom: "0.25rem" }}>Ready to contribute?</div>
-            <p style={{ color: "var(--text-muted)", fontSize: "0.95rem", marginBottom: "1rem" }}>
-              Contributors get their GitHub handle listed on the problem page permanently.
-            </p>
-            <a
-              href="https://github.com/AkshatG-coder/codePro"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="btn btn-primary"
-              style={{ fontSize: "1rem", padding: "0.6rem 1.5rem" }}
-            >
-              Open GitHub Repo →
-            </a>
+        {/* RIGHT: GitHub PR Guide */}
+        <div>
+          <h2 style={{ fontSize: "1.25rem", fontWeight: 700, marginBottom: "0.5rem" }}>
+            🔧 Contribute via GitHub PR
+          </h2>
+          <p style={{ color: "var(--text-muted)", fontSize: "0.875rem", marginBottom: "1.5rem" }}>
+            Want full credit? Follow this guide to add the problem directly — we&apos;ll review and merge your PR!
+          </p>
+
+          <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
+            {STEPS.map((step, i) => (
+              <div key={i} style={{
+                background: "var(--bg-surface)",
+                border: "1px solid var(--border)",
+                borderRadius: "var(--radius-md)",
+                overflow: "hidden",
+                transition: "border-color 0.2s",
+              }}>
+                <div style={{
+                  display: "flex", alignItems: "flex-start", gap: "0.875rem",
+                  padding: "0.875rem 1rem",
+                }}>
+                  <div style={{
+                    width: 32, height: 32, borderRadius: "50%", flexShrink: 0,
+                    background: "rgba(47,129,247,0.15)", border: "1px solid rgba(47,129,247,0.3)",
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                    fontSize: "0.85rem", fontWeight: 700,
+                  }}>
+                    {i + 1}
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontWeight: 700, fontSize: "0.9rem", marginBottom: "0.25rem" }}>
+                      {step.icon} {step.title}
+                    </div>
+                    <p style={{ color: "var(--text-muted)", fontSize: "0.8rem", marginBottom: "0.5rem" }}>{step.desc}</p>
+                    <pre style={{
+                      background: "var(--bg-base)",
+                      border: "1px solid var(--border-muted)",
+                      borderRadius: "var(--radius-sm)",
+                      padding: "0.625rem 0.875rem",
+                      fontSize: "0.72rem",
+                      fontFamily: "'JetBrains Mono', monospace",
+                      color: "var(--accent-blue)",
+                      overflow: "auto",
+                      margin: 0,
+                      whiteSpace: "pre-wrap",
+                      lineHeight: 1.6,
+                    }}>
+                      {step.code}
+                    </pre>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* CTA */}
+          <div style={{
+            marginTop: "1.25rem",
+            background: "linear-gradient(135deg, rgba(163,113,247,0.1), rgba(47,129,247,0.1))",
+            border: "1px solid rgba(163,113,247,0.25)",
+            borderRadius: "var(--radius-lg)",
+            padding: "1.25rem",
+            display: "flex", alignItems: "center", gap: "1rem",
+          }}>
+            <div style={{ fontSize: "2.5rem" }}>⭐</div>
+            <div>
+              <div style={{ fontWeight: 700, marginBottom: "0.25rem" }}>Ready to contribute?</div>
+              <p style={{ color: "var(--text-muted)", fontSize: "0.85rem", marginBottom: "0.75rem" }}>
+                Contributors get their GitHub handle listed on the problem page permanently.
+              </p>
+              <a
+                href="https://github.com/AkshatG-coder/codePro"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="btn btn-primary"
+                style={{ fontSize: "0.875rem" }}
+              >
+                Open GitHub Repo →
+              </a>
+            </div>
           </div>
         </div>
       </div>
