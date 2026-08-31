@@ -7,11 +7,10 @@ Welcome to the **Code Pro** deployment guide. This document describes the platfo
 ## 🏗️ System Architecture
 
 Code Pro is built as a microservices-based monorepo consisting of:
-1. **Next.js Web Frontend**: Server-side rendered UI and API Routes for Server-Sent Events (SSE) and Webhooks.
-2. **Express API Server**: Handles core platform logic and authentication.
-3. **Judge0 CE**: An open-source, sandbox-secured code execution engine.
-4. **PostgreSQL**: Stores persistent relational data (users, problems, submissions, and contest rankings).
-5. **Redis**: In-memory message broker used by Judge0 for job queueing.
+1. **Next.js Web Frontend**: Server-side rendered UI and Fullstack API Routes for Server-Sent Events (SSE) and Webhooks.
+2. **Judge0 CE**: An open-source, sandbox-secured code execution engine.
+3. **PostgreSQL**: Stores persistent relational data (users, problems, submissions, and contest rankings).
+4. **Redis**: In-memory message broker used by Judge0 for job queueing and by Next.js for Pub/Sub.
 
 ### Traffic & Data Flow Diagram (Webhook + SSE Architecture)
 
@@ -56,12 +55,11 @@ In development, the databases and Judge0 run in containers while you run the app
    npm run dev
    ```
 
-### B. Production Mode (Azure VM + PM2 + Neon DB)
+### B. Production Mode (Azure VM Docker Compose + Neon DB)
 Our actual live production environment uses a hybrid approach to maximize performance while minimizing costs:
 
-1. **Frontend (`apps/web`) & Backend API (`apps/api`)**: 
-   - Deployed natively on an **Azure Ubuntu VM**.
-   - Managed by **PM2** for process monitoring and zero-downtime restarts.
+1. **Web App (`apps/web`)**: 
+   - Deployed as a Docker container on the **Azure Ubuntu VM**.
 2. **Database**: 
    - Primary database is hosted on **Neon.tech** (Serverless Managed PostgreSQL).
 3. **Code Execution Engine (Judge0)**: 
@@ -78,12 +76,12 @@ The repository features an automated workflow configured in [ci-cd.yml](file:///
 * Installs dependencies via `npm ci`.
 * Generates the Prisma client types.
 * Lints the codebase (`npm run lint`).
-* Compiles the Next.js and Express source code to check for compilation/type errors.
+* Compiles the Next.js source code to check for compilation/type errors.
 * Builds Docker images as artifacts (available in GHCR).
 
 ### 2. Delivery Phase (CD)
 * Automatically runs after the Integration Phase passes.
 * Connects to the **Azure VM** securely via SSH.
 * Pulls the latest code from the `main` branch.
-* Installs dependencies, regenerates the Prisma client, and builds the production Next.js/Express bundles locally on the VM.
-* Executes `pm2 restart all` to seamlessly restart the live services with the new code.
+* Pulls the latest Docker images from GHCR.
+* Executes `docker compose -f docker-compose.prod.yml up -d` to seamlessly restart the live services with the new code.

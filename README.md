@@ -5,8 +5,7 @@
 ```text
 CODE_PRO/
 ├── apps/
-│   ├── web/              # Next.js 16 Frontend & NextAuth
-│   └── api/              # Express Backend API
+│   └── web/              # Next.js 16 Frontend & Fullstack API
 ├── packages/
 │   └── db/               # Prisma schema + generated client (shared)
 ├── scripts/              # Problem-setting & seed utilities
