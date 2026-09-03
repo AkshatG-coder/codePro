@@ -11,70 +11,34 @@ const STEPS = [
     code: "# Click 'Fork' on GitHub, then clone your fork\ngit clone https://github.com/YOUR_USERNAME/code-pro.git\ncd code-pro",
   },
   {
-    icon: "📁",
-    title: "Create a Problem Folder",
-    desc: "Inside scripts/problems/, create a folder with your problem's slug.",
-    code: "mkdir scripts/problems/your-problem-slug\ncd scripts/problems/your-problem-slug",
+    icon: "⚙️",
+    title: "Scaffold with the CLI",
+    desc: "Run our interactive generator CLI to automatically create the folder and template files.",
+    code: "npm run generate\n\n# Select option 1 (Scaffold)\n# Enter your problem slug (e.g. two-sum)",
   },
   {
     icon: "📝",
-    title: "Write structure.md",
-    desc: "Define the function signature, parameter types, and return type. Our generator will auto-create boilerplates for C++, JS, and Rust.",
-    code: `# structure.md
-# function: twoSum
-## params
-- nums: int[]
-- target: int
-## return
-- int[]`,
-  },
-  {
-    icon: "📄",
-    title: "Write description.md",
-    desc: "Write the full problem statement in Markdown — examples, constraints, all of it.",
-    code: `# Two Sum
-
-Given an array of integers **nums** and an integer **target**, 
-return indices of the two numbers such that they add up to target.
-
-## Examples
-\`\`\`
-Input: nums = [2,7,11,15], target = 9
-Output: [0,1]
-\`\`\`
-
-## Constraints
-- 2 ≤ nums.length ≤ 10⁴`,
+    title: "Define the Problem",
+    desc: "Open the newly created folder in scripts/problems/ and fill out problem.md, structure.md, and metadata.json.",
+    code: `# structure.md\n# function: twoSum\n## params\n- nums: int[]\n- target: int\n## return\n- int[]`,
   },
   {
     icon: "🧪",
     title: "Add Test Cases",
-    desc: "Create a testcases/ folder with numbered .txt files (input and expected output).",
-    code: `testcases/
-├── 1.in  → "4\\n2 7 11 15\\n9"
-├── 1.out → "0 1"
-├── 2.in  → "3\\n3 2 4\\n6"
-└── 2.out → "1 2"`,
+    desc: "Open testcases.json and add your inputs and expected outputs.",
+    code: `[\n  {\n    "input": "4\\n2 7 11 15\\n9",\n    "expected": "0 1\\n",\n    "hidden": false\n  }\n]`,
   },
   {
-    icon: "⚙️",
-    title: "Run the Generator",
-    desc: "Use our script to auto-generate boilerplates and validate everything.",
-    code: `# From repo root:
-npm run generate --problem=your-problem-slug
-
-# This outputs partial boilerplate (shown to users)
-# and full boilerplate (reads stdin, calls your func)`,
+    icon: "🪄",
+    title: "Compile Boilerplates",
+    desc: "Run the CLI again to auto-generate the complex C++, JS, and Rust boilerplate files.",
+    code: "npm run generate\n\n# Select option 2 (Compile)",
   },
   {
     icon: "🚀",
     title: "Open a Pull Request",
-    desc: "Push your branch and open a PR. Reference your suggestion ID in the title so we can track it.",
-    code: `git checkout -b add/your-problem-slug
-git add scripts/problems/your-problem-slug/
-git commit -m "feat: add 'Your Problem Title' problem"
-git push origin add/your-problem-slug
-# Then open a PR on GitHub!`,
+    desc: "Push your branch and open a PR. Our database will automatically seed your problem!",
+    code: `git checkout -b add/your-problem-slug\ngit add scripts/problems/your-problem-slug/\ngit commit -m "feat: add 'Your Problem Title' problem"\ngit push origin add/your-problem-slug\n# Then open a PR on GitHub!`,
   },
 ];
 

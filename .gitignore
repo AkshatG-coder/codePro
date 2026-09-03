@@ -61,3 +61,5 @@ packages/db/node_modules/
 *.tsbuildinfo
 .cache/
 coverage/
+
+scripts/problems/
