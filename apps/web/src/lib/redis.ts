@@ -1,6 +1,5 @@
 import Redis from "ioredis";
 
-// Use REDIS_URL from env, default to localhost for local dev if missing
 const REDIS_URL = process.env.REDIS_URL || "redis://localhost:6379";
 
 const globalForRedis = global as unknown as { redis: Redis };

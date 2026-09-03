@@ -1,5 +1,6 @@
 import { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { redis } from "@/lib/redis";
 
 type StandingRow = {
   user: { id: string; name: string | null; image: string | null };
@@ -17,6 +18,25 @@ async function fetchStandings(contestId: string) {
     },
     orderBy: { totalPoints: "desc" },
   });
+}
+
+async function getCachedStandings(contestId: string) {
+  const cacheKey = `leaderboard:${contestId}`;
+  const cachedData = await redis.get(cacheKey);
+  
+  if (cachedData) {
+    return typeof cachedData === "string" ? JSON.parse(cachedData) : cachedData;
+  }
+
+  const standings = await fetchStandings(contestId);
+  const formatted = standings.map((e: StandingRow, i: number) => ({
+    rank: i + 1,
+    user: e.user,
+    totalPoints: e.totalPoints,
+  }));
+
+  await redis.set(cacheKey, JSON.stringify(formatted), "EX", 5);
+  return formatted;
 }
 
 export async function GET(
@@ -41,8 +61,8 @@ export async function GET(
       };
 
       // Send initial standings immediately
-      const initial = await fetchStandings(contestId);
-      send({ standings: initial.map((e: StandingRow, i: number) => ({ rank: i + 1, user: e.user, totalPoints: e.totalPoints })) });
+      const initialStandings = await getCachedStandings(contestId);
+      send({ standings: initialStandings });
 
       // If contest is still active, keep streaming every 5s
       const isActive = contest && new Date() < contest.endTime;
@@ -53,14 +73,8 @@ export async function GET(
 
       const intervalId = setInterval(async () => {
         try {
-          const standings = await fetchStandings(contestId);
-          send({
-            standings: standings.map((e: StandingRow, i: number) => ({
-              rank: i + 1,
-              user: e.user,
-              totalPoints: e.totalPoints,
-            })),
-          });
+          const standings = await getCachedStandings(contestId);
+          send({ standings });
 
           // Stop streaming if contest has ended
           if (new Date() > contest.endTime) {
