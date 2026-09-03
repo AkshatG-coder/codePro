@@ -1,0 +1,22 @@
+[
+  {
+    "input": "9\n-2 1 -3 4 -1 2 1 -5 4",
+    "expected": "6\n",
+    "hidden": false
+  },
+  {
+    "input": "1\n1",
+    "expected": "1\n",
+    "hidden": false
+  },
+  {
+    "input": "5\n5 4 -1 7 8",
+    "expected": "23\n",
+    "hidden": false
+  },
+  {
+    "input": "4\n-3 -2 -1 -4",
+    "expected": "-1\n",
+    "hidden": true
+  }
+]

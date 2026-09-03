@@ -1,0 +1,9 @@
+{
+  "title": "Maximum Subarray",
+  "difficulty": "MEDIUM",
+  "tags": [
+    "Arrays",
+    "DP",
+    "Greedy"
+  ]
+}

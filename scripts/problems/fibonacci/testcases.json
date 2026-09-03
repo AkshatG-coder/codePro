@@ -1,0 +1,22 @@
+[
+  {
+    "input": "0",
+    "expected": "0\n",
+    "hidden": false
+  },
+  {
+    "input": "1",
+    "expected": "1\n",
+    "hidden": false
+  },
+  {
+    "input": "6",
+    "expected": "8\n",
+    "hidden": false
+  },
+  {
+    "input": "10",
+    "expected": "55\n",
+    "hidden": true
+  }
+]
