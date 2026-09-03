@@ -12,23 +12,6 @@ Code Pro is built as a microservices-based monorepo consisting of:
 3. **PostgreSQL**: Stores persistent relational data (users, problems, submissions, and contest rankings).
 4. **Redis**: In-memory message broker used by Judge0 for job queueing and by Next.js for Pub/Sub.
 
-### Traffic & Data Flow Diagram (Webhook + SSE Architecture)
-
-```mermaid
-graph TD
-    Client[User / Browser] -->|1. Submit Code| WebAPI[Next.js API - Port 3000]
-    Client -->|2. Subscribe to SSE| WebAPI
-    
-    WebAPI -->|3. Submit Batch & Callback URL| JServer[Judge0 CE Server - Port 2358]
-    WebAPI -->|Save PENDING Submission| DB[(PostgreSQL DB: codepro)]
-    
-    JServer -->|Job Queueing| Redis[(Redis Broker)]
-    JWorker[Judge0 CE Worker] -->|Execute & Evaluate| Redis
-    
-    JServer -->|4. Push Result Webhook| WebAPI
-    WebAPI -->|5. Update DB Status| DB
-    WebAPI -->|6. Push SSE Event| Client
-```
 
 ---
 
