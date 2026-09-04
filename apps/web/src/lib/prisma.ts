@@ -1,6 +1,7 @@
-import { PrismaClient } from "@prisma/client";
+import { prisma } from "@repo/db";
 
-// Single shared Prisma client instance for the entire app
-export const prisma = new PrismaClient({ log: ["error"] });
-
+// Single shared Prisma client instance from @repo/db
+export { prisma };
 export default prisma;
+export * from "@repo/db";
+

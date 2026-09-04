@@ -1,9 +1,7 @@
 import "dotenv/config";
-import { PrismaClient } from "@prisma/client";
 import * as fs from "fs/promises";
 import * as path from "path";
-
-const prisma = new PrismaClient();
+import { prisma } from "../index";
 
 const LANG = { cpp: 54, js: 63, rust: 73 } as const;
 
